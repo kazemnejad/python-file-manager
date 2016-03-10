@@ -1,2 +1,2 @@
-# python-file-manager
-Beautiful file manage written in python
+# Python File Manager
+Beautiful file manager written in Python and Qt
