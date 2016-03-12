@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from PyQt4 import QtGui
 import sys
+from PyQt4 import QtGui
 
 from filemanager import FileManager
 

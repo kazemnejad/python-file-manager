@@ -1,12 +1,14 @@
-from PyQt4.QtGui import QWidget
+from PyQt4 import QtGui
+
+from mainForm import Ui_MainWindow
 
 
-class FileManager(QWidget):
+class FileManager(QtGui.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(FileManager, self).__init__()
 
-        self.init_ui()
+        self.setupUi(self)
+        self.show()
 
     def init_ui(self):
-        self.setWindowTitle('GoHappy FileManager')
-        self.show()
+        pass
