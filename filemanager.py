@@ -15,9 +15,13 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         self.setupUi(self)
 
+        self.history = [QDir.homePath()]
+        self.current_index = 0
+
         self.init_file_system_model()
         self.init_left_pane()
         self.init_right_pane()
+        self.init_actions()
 
     def init_file_system_model(self):
         # self.mFileSystemModel = QFileSystemModel(self.leftPane)
@@ -30,6 +34,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         rootIndex = self.leftPaneFileModel.setRootPath(QDir.homePath())
         self.leftPane.setModel(self.leftPaneFileModel)
         self.leftPane.setRootIndex(rootIndex)
+        self.leftPane.doubleClicked.connect(self.on_left_pane_item_clicked)
         colorName = self.palette().color(QPalette.Window).name()
         self.leftPane.setStyleSheet("background-color: " + str(colorName))
 
@@ -52,8 +57,12 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.header().setMovable(False)
         self.rightPane.header().setResizeMode(0, QHeaderView.Stretch)
 
-    def on_right_pane_item_clicked(self, leftIndex):
-        path = self.rightPaneFileModel.filePath(leftIndex)
+    def init_actions(self):
+        self.tbActionBack.triggered.connect(self.on_back)
+        self.tbActionForward.triggered.connect(self.on_forward)
+
+    def on_right_pane_item_clicked(self, index):
+        path = self.rightPaneFileModel.filePath(index)
         fileInfo = QFileInfo(path)
         if fileInfo.isDir():
             self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
@@ -62,6 +71,16 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             self.expand_children(leftIndex, self.leftPane)
         elif fileInfo.isFile():
             self.open_file(path)
+
+    def on_left_pane_item_clicked(self, index):
+        path = self.leftPaneFileModel.filePath(index)
+        self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
+
+    def on_back(self, event):
+        print "OnBack"
+
+    def on_forward(self, event):
+        print "OnForward"
 
     def enter_dir(self, pane, model, path):
         rootIndex = model.setRootPath(path)
