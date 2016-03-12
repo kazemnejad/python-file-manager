@@ -1,5 +1,8 @@
+import os
+import subprocess
 from PyQt4 import QtGui
 
+import sys
 from PyQt4.QtCore import QDir, QFileInfo
 from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette
 
@@ -49,13 +52,16 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.header().setMovable(False)
         self.rightPane.header().setResizeMode(0, QHeaderView.Stretch)
 
-    def on_right_pane_item_clicked(self, index):
-        path = self.rightPaneFileModel.filePath(index)
+    def on_right_pane_item_clicked(self, leftIndex):
+        path = self.rightPaneFileModel.filePath(leftIndex)
+        fileInfo = QFileInfo(path)
+        if fileInfo.isDir():
+            self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
 
-        self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
-        if QFileInfo(path).isDir():
-            index = self.leftPaneFileModel.index(path, 0)
-            self.expand_children(index, self.leftPane)
+            leftIndex = self.leftPaneFileModel.index(path, 0)
+            self.expand_children(leftIndex, self.leftPane)
+        elif fileInfo.isFile():
+            self.open_file(path)
 
     def enter_dir(self, pane, model, path):
         rootIndex = model.setRootPath(path)
@@ -72,3 +78,11 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         if not pane.isExpanded(index):
             pane.expand(index)
+
+    def open_file(self, filepath):
+        if sys.platform.startswith('darwin'):
+            subprocess.call(('open', filepath))
+        elif os.name == 'nt':
+            os.startfile(filepath)
+        elif os.name == 'posix':
+            subprocess.call(('xdg-open', filepath))
