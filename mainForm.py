@@ -28,7 +28,7 @@ class Ui_mainWindow(object):
         mainWindow.setWindowModality(QtCore.Qt.NonModal)
         mainWindow.resize(960, 600)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(_fromUtf8("gohappy.svg")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(_fromUtf8("resources/gohappy.svg")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         mainWindow.setWindowIcon(icon)
         self.centralwidget = QtGui.QWidget(mainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
