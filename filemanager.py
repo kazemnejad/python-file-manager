@@ -27,7 +27,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         rootIndex = self.leftPaneFileModel.setRootPath(QDir.homePath())
         self.leftPane.setModel(self.leftPaneFileModel)
         self.leftPane.setRootIndex(rootIndex)
-        colorName = self.palette().color(QPalette.ToolTipText).name()
+        colorName = self.palette().color(QPalette.Window).name()
         self.leftPane.setStyleSheet("background-color: " + str(colorName))
 
         for columnIndex in xrange(1, self.leftPaneFileModel.columnCount()):

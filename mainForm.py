@@ -80,7 +80,7 @@ class Ui_mainWindow(object):
         self.toolBar.addAction(self.tbActionBack)
         self.toolBar.addAction(self.tbActionForward)
 
-        colorName = self.toolBar.palette().color(QPalette.ToolTipText).name()
+        colorName = self.toolBar.palette().color(QPalette.Window).name()
         self.toolBar.setStyleSheet("background-color: " + str(colorName))
 
         self.retranslateUi(mainWindow)
