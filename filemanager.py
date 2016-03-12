@@ -1,6 +1,6 @@
 from PyQt4 import QtGui
 
-from PyQt4.QtCore import QDir
+from PyQt4.QtCore import QDir, Qt, QFileInfo
 from PyQt4.QtGui import QFileSystemModel, QHeaderView
 
 from mainForm import Ui_mainWindow
@@ -41,6 +41,31 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.setRootIndex(rootIndex)
         self.rightPane.setStyleSheet("QTreeView::branch {  border-image: url(none.png); }")
         self.rightPane.setExpandsOnDoubleClick(False)
+        self.rightPane.doubleClicked.connect(self.on_right_pane_item_clicked)
 
         self.rightPane.header().setStretchLastSection(False)
+        self.rightPane.header().setMovable(False)
         self.rightPane.header().setResizeMode(0, QHeaderView.Stretch)
+
+    def on_right_pane_item_clicked(self, index):
+        path = self.rightPaneFileModel.filePath(index)
+
+        self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
+        if QFileInfo(path).isDir():
+            self.enter_dir(self.leftPane, self.leftPaneFileModel, path)
+
+    def enter_dir(self,pane, model, path):
+        rootIndex = model.setRootPath(path)
+        pane.setRootIndex(rootIndex)
+
+    def expand_children(self, index, pane):
+        if index.isValid():
+            return
+
+        childCount = index.model().rowCount(index)
+        for i in xrange(0, childCount):
+            child = index.child(i, 0)
+            self.expand_children(child, pane)
+
+        if not pane.expanded(index):
+            pane.expand(index)
