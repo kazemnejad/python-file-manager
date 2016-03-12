@@ -55,8 +55,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             index = self.leftPaneFileModel.index(path, 0)
             self.expand_children(index, self.leftPane)
 
-
-    def enter_dir(self,pane, model, path):
+    def enter_dir(self, pane, model, path):
         rootIndex = model.setRootPath(path)
         pane.setRootIndex(rootIndex)
 
