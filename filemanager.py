@@ -10,6 +10,10 @@ from mainForm import Ui_mainWindow
 
 
 class FileManager(QtGui.QMainWindow, Ui_mainWindow):
+    NORMAL = 0
+    FORWARD = 1
+    BACK = 2
+
     def __init__(self):
         super(FileManager, self).__init__()
 
@@ -22,6 +26,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_left_pane()
         self.init_right_pane()
         self.init_actions()
+
+        print self.history
 
     def init_file_system_model(self):
         # self.mFileSystemModel = QFileSystemModel(self.leftPane)
@@ -51,6 +57,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.setRootIndex(rootIndex)
         self.rightPane.setStyleSheet("QTreeView::branch {  border-image: url(none.png); }")
         self.rightPane.setExpandsOnDoubleClick(False)
+        self.rightPane.setItemsExpandable(False)
         self.rightPane.doubleClicked.connect(self.on_right_pane_item_clicked)
 
         self.rightPane.header().setStretchLastSection(False)
@@ -65,38 +72,61 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         path = self.rightPaneFileModel.filePath(index)
         fileInfo = QFileInfo(path)
         if fileInfo.isDir():
-            self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
-
-            leftIndex = self.leftPaneFileModel.index(path, 0)
-            self.expand_children(leftIndex, self.leftPane)
+            self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL)
         elif fileInfo.isFile():
             self.open_file(path)
 
     def on_left_pane_item_clicked(self, index):
         path = self.leftPaneFileModel.filePath(index)
-        self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
+        self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL)
 
     def on_back(self, event):
-        print "OnBack"
+        if self.current_index == 0: return
+        self.enter_dir(self.rightPane, self.rightPaneFileModel, self.history[self.current_index - 1], FileManager.BACK)
 
     def on_forward(self, event):
-        print "OnForward"
+        if self.current_index == len(self.history) - 1: return
+        self.enter_dir(self.rightPane, self.rightPaneFileModel, self.history[self.current_index + 1],
+                       FileManager.FORWARD)
 
-    def enter_dir(self, pane, model, path):
+    def update_left_pane(self, path, enterType):
+        if not enterType == FileManager.BACK:
+            self.leftPaneFileModel.setRootPath(path)
+
+        leftIndex = self.leftPaneFileModel.index(path, 0)
+        self.expand_children(leftIndex, self.leftPane, enterType)
+
+    def enter_dir(self, pane, model, path, enterType):
         rootIndex = model.setRootPath(path)
         pane.setRootIndex(rootIndex)
 
-    def expand_children(self, index, pane):
+        if enterType == FileManager.NORMAL:
+            del self.history[self.current_index + 1:]
+            self.update_left_pane(path, enterType)
+            self.history.append(path)
+            self.current_index += 1
+        elif enterType == FileManager.FORWARD:
+            self.update_left_pane(path, enterType)
+            self.current_index += 1
+        elif enterType == FileManager.BACK:
+            self.update_left_pane(self.history[self.current_index], enterType)
+            self.current_index -= 1
+
+        print self.history
+
+    def expand_children(self, index, pane, enterType):
         if not index.isValid():
             return
 
-        childCount = index.model().rowCount(index)
-        for i in xrange(0, childCount):
-            child = index.child(i, 0)
-            self.expand_children(child, pane)
+        # childCount = index.model().rowCount(index)
+        # for i in xrange(0, childCount):
+        #     child = index.child(i, 0)
+        #     self.expand_children(child, pane, enterType)
 
-        if not pane.isExpanded(index):
-            pane.expand(index)
+        if enterType == FileManager.BACK:
+            pane.collapse(index)
+        else:
+            if not pane.isExpanded(index): pane.expand(index)
 
     def open_file(self, filepath):
         if sys.platform.startswith('darwin'):
