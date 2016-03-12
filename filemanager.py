@@ -1,7 +1,7 @@
 from PyQt4 import QtGui
 
-from PyQt4.QtCore import QDir, Qt, QFileInfo
-from PyQt4.QtGui import QFileSystemModel, QHeaderView
+from PyQt4.QtCore import QDir, QFileInfo
+from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette
 
 from mainForm import Ui_mainWindow
 
@@ -27,6 +27,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         rootIndex = self.leftPaneFileModel.setRootPath(QDir.homePath())
         self.leftPane.setModel(self.leftPaneFileModel)
         self.leftPane.setRootIndex(rootIndex)
+        colorName = self.palette().color(QPalette.ToolTipText).name()
+        self.leftPane.setStyleSheet("background-color: " + str(colorName))
 
         for columnIndex in xrange(1, self.leftPaneFileModel.columnCount()):
             self.leftPane.hideColumn(columnIndex)

@@ -8,6 +8,8 @@
 
 from PyQt4 import QtCore, QtGui
 
+from PyQt4.QtGui import QPalette
+
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
@@ -77,6 +79,9 @@ class Ui_mainWindow(object):
         self.tbActionForward.setObjectName(_fromUtf8("tbActionForward"))
         self.toolBar.addAction(self.tbActionBack)
         self.toolBar.addAction(self.tbActionForward)
+
+        colorName = self.toolBar.palette().color(QPalette.ToolTipText).name()
+        self.toolBar.setStyleSheet("background-color: " + str(colorName))
 
         self.retranslateUi(mainWindow)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
