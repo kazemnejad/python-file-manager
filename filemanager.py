@@ -52,14 +52,16 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         self.enter_dir(self.rightPane, self.rightPaneFileModel, path)
         if QFileInfo(path).isDir():
-            self.enter_dir(self.leftPane, self.leftPaneFileModel, path)
+            index = self.leftPaneFileModel.index(path, 0)
+            self.expand_children(index, self.leftPane)
+
 
     def enter_dir(self,pane, model, path):
         rootIndex = model.setRootPath(path)
         pane.setRootIndex(rootIndex)
 
     def expand_children(self, index, pane):
-        if index.isValid():
+        if not index.isValid():
             return
 
         childCount = index.model().rowCount(index)
@@ -67,5 +69,5 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             child = index.child(i, 0)
             self.expand_children(child, pane)
 
-        if not pane.expanded(index):
+        if not pane.isExpanded(index):
             pane.expand(index)
