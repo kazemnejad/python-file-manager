@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>mainWindow</class>
+ <widget class="QMainWindow" name="mainWindow">
   <property name="windowModality">
    <enum>Qt::NonModal</enum>
   </property>
@@ -9,12 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>960</width>
     <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>GoHappy FileManager</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -37,22 +37,32 @@
        <enum>QLayout::SetDefaultConstraint</enum>
       </property>
       <item>
-       <widget class="QTreeView" name="treeView">
+       <widget class="QTreeView" name="leftPane">
         <property name="minimumSize">
          <size>
-          <width>200</width>
+          <width>225</width>
           <height>0</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>200</width>
+          <width>225</width>
           <height>16777215</height>
          </size>
         </property>
         <property name="autoFillBackground">
          <bool>false</bool>
         </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTreeView" name="rightPane">
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
@@ -77,13 +87,6 @@
         </property>
        </spacer>
       </item>
-      <item>
-       <widget class="QListView" name="listView">
-        <property name="frameShape">
-         <enum>QFrame::NoFrame</enum>
-        </property>
-       </widget>
-      </item>
      </layout>
     </item>
    </layout>
@@ -93,7 +96,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>960</width>
      <height>25</height>
     </rect>
    </property>
