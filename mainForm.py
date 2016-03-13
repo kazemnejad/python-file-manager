@@ -54,7 +54,7 @@ class Ui_mainWindow(object):
         self.leftPane.setObjectName(_fromUtf8("leftPane"))
         self.horizontalLayout.addWidget(self.leftPane)
         self.rightPane = QtGui.QTreeView(self.centralwidget)
-        self.rightPane.setFrameShape(QtGui.QFrame.NoFrame)
+        self.rightPane.setFrameShape(QtGui.QFrame.StyledPanel)
         self.rightPane.setLineWidth(0)
         self.rightPane.setObjectName(_fromUtf8("rightPane"))
         self.horizontalLayout.addWidget(self.rightPane)

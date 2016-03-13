@@ -3,7 +3,7 @@ import subprocess
 from PyQt4 import QtGui
 
 import sys
-from PyQt4.QtCore import QDir, QFileInfo
+from PyQt4.QtCore import QDir, QFileInfo, QSize
 from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette
 
 from mainForm import Ui_mainWindow
