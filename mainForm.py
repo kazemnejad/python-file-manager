@@ -18,11 +18,14 @@ except AttributeError:
 
 try:
     _encoding = QtGui.QApplication.UnicodeUTF8
+
+
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
+
 
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
@@ -94,4 +97,3 @@ class Ui_mainWindow(object):
         self.tbActionBack.setShortcut(_translate("mainWindow", "Ctrl+Left, Backspace", None))
         self.tbActionForward.setText(_translate("mainWindow", "Forward", None))
         self.tbActionForward.setShortcut(_translate("mainWindow", "Ctrl+Right", None))
-

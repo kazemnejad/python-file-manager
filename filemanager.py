@@ -22,16 +22,15 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.history = [QDir.homePath()]
         self.current_index = 0
 
+        self.init_actions()
         self.init_file_system_model()
         self.init_left_pane()
         self.init_right_pane()
-        self.init_actions()
 
         print self.history
 
     def init_file_system_model(self):
-        # self.mFileSystemModel = QFileSystemModel(self.leftPane)
-        self.leftPaneFileModel = QFileSystemModel(self)
+        self.leftPaneFileModel = QFileSystemModel(self.leftPane)
         self.leftPaneFileModel.setFilter(QDir.NoDotAndDotDot | QDir.AllDirs)
 
         self.rightPaneFileModel = QFileSystemModel(self)
@@ -70,39 +69,43 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def on_right_pane_item_clicked(self, index):
         path = self.rightPaneFileModel.filePath(index)
+
         fileInfo = QFileInfo(path)
         if fileInfo.isDir():
-            self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL)
+            self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL, False)
         elif fileInfo.isFile():
             self.open_file(path)
 
     def on_left_pane_item_clicked(self, index):
         path = self.leftPaneFileModel.filePath(index)
-        self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL)
+        self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL, True)
 
     def on_back(self, event):
         if self.current_index == 0: return
-        self.enter_dir(self.rightPane, self.rightPaneFileModel, self.history[self.current_index - 1], FileManager.BACK)
+        self.enter_dir(self.rightPane, self.rightPaneFileModel,
+                       self.history[self.current_index - 1], FileManager.BACK, False)
 
     def on_forward(self, event):
         if self.current_index == len(self.history) - 1: return
-        self.enter_dir(self.rightPane, self.rightPaneFileModel, self.history[self.current_index + 1],
-                       FileManager.FORWARD)
+        self.enter_dir(self.rightPane, self.rightPaneFileModel,
+                       self.history[self.current_index + 1], FileManager.FORWARD, False)
 
     def update_left_pane(self, path, enterType):
-        if not enterType == FileManager.BACK:
-            self.leftPaneFileModel.setRootPath(path)
-
         leftIndex = self.leftPaneFileModel.index(path, 0)
         self.expand_children(leftIndex, self.leftPane, enterType)
 
-    def enter_dir(self, pane, model, path, enterType):
+    def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
         pane.setRootIndex(rootIndex)
 
         if enterType == FileManager.NORMAL:
+            if not is_from_left_pane:
+                self.update_left_pane(path, FileManager.NORMAL)
+
+            if self.history[self.current_index] == path:
+                return
+
             del self.history[self.current_index + 1:]
-            self.update_left_pane(path, enterType)
             self.history.append(path)
             self.current_index += 1
         elif enterType == FileManager.FORWARD:
@@ -126,7 +129,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         if enterType == FileManager.BACK:
             pane.collapse(index)
         else:
-            if not pane.isExpanded(index): pane.expand(index)
+            if not pane.isExpanded(index):
+                pane.expand(index)
 
     def open_file(self, filepath):
         if sys.platform.startswith('darwin'):
