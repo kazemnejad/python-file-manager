@@ -59,6 +59,13 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.setItemsExpandable(False)
         self.rightPane.doubleClicked.connect(self.on_right_pane_item_clicked)
 
+        self.rightPane.setAlternatingRowColors(True)
+        #self.rightPane.hideColumn(1)
+        #self.rightPane.hideColumn(2)
+        #self.rightPane.hideColumn(3)
+        self.rightPane.updatesEnabled()
+        self.rightPane.setIconSize(QSize(32,32))
+
         self.rightPane.header().setStretchLastSection(False)
         self.rightPane.header().setMovable(False)
         self.rightPane.header().setResizeMode(0, QHeaderView.Stretch)
