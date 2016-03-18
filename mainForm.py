@@ -10,6 +10,8 @@ from PyQt4 import QtCore, QtGui
 
 from PyQt4.QtGui import QPalette
 
+from widget import SuperTreeView
+
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
@@ -53,7 +55,7 @@ class Ui_mainWindow(object):
         self.leftPane.setLineWidth(0)
         self.leftPane.setObjectName(_fromUtf8("leftPane"))
         self.horizontalLayout.addWidget(self.leftPane)
-        self.rightPane = QtGui.QTreeView(self.centralwidget)
+        self.rightPane = SuperTreeView(self.centralwidget)
         self.rightPane.setFrameShape(QtGui.QFrame.StyledPanel)
         self.rightPane.setLineWidth(0)
         self.rightPane.setObjectName(_fromUtf8("rightPane"))
@@ -94,6 +96,5 @@ class Ui_mainWindow(object):
         self.toolBar.setWindowTitle(_translate("mainWindow", "toolBar", None))
         self.tbActionBack.setText(_translate("mainWindow", "Back", None))
         self.tbActionBack.setToolTip(_translate("mainWindow", "Back", None))
-        self.tbActionBack.setShortcut(_translate("mainWindow", "Ctrl+Left, Backspace", None))
         self.tbActionForward.setText(_translate("mainWindow", "Forward", None))
         self.tbActionForward.setShortcut(_translate("mainWindow", "Ctrl+Right", None))
