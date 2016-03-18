@@ -17,6 +17,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     BACK = 2
     FLAGCOPY = 0
     SRC = ''
+
     def __init__(self):
         super(FileManager, self).__init__()
 
@@ -33,8 +34,6 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_file_system_model()
         self.init_left_pane()
         self.init_right_pane()
-
-
 
     def init_file_system_model(self):
         self.leftPaneFileModel = QFileSystemModel(self.leftPane)
@@ -131,8 +130,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         index = self.rightPane.indexAt(position)
         path = self.rightPaneFileModel.filePath(index)
 
-        #cut
-        cutAction = QAction("Cut" , menu)
+        # cut
+        cutAction = QAction("Cut", menu)
         cutAction.triggered.connect(lambda event: self.on_cut(str(path)))
         menu.addAction(cutAction)
 
@@ -142,7 +141,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         menu.addAction(copyAction)
 
         # paste
-        if(self.FLAGCOPY != 0 and not(os.path.isfile(str(path)))):
+        if (self.FLAGCOPY != 0 and not (os.path.isfile(str(path)))):
             pasteAction = QAction("Paste", menu)
             pasteAction.triggered.connect(lambda event: self.on_paste(str(path)))
             menu.addAction(pasteAction)
@@ -165,10 +164,14 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         print path
 
     def on_paste(self, dst):
+        if dst is None or len(dst) == 0:
+            path = str(self.history[self.current_index])
+            return self.on_paste(path)
+
         if self.FLAGCOPY == 1:
-            t = threading.Thread(target=MyCopy(self.SRC,dst))
+            t = threading.Thread(target=MyCopy(self.SRC, dst))
         elif self.FLAGCOPY == 2:
-            t = threading.Thread(target=shutil.move(self.SRC,dst))
+            t = threading.Thread(target=shutil.move(self.SRC, dst))
         t.start()
         print dst
 
@@ -225,24 +228,26 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             os.startfile(filepath)
         elif os.name == 'posix':
             subprocess.call(('xdg-open', filepath))
-def MyCopy(src , dst):
-    print "src : ",src," dst : " , dst
-    print "name :",os.path.basename(src)
+
+
+def MyCopy(src, dst):
+    print "src : ", src, " dst : ", dst
+    print "name :", os.path.basename(src)
     if os.path.isfile(src):
-        shutil.copy2(src , dst)
-    if not os.path.isdir(os.path.join(dst,os.path.basename(src))):
-        os.mkdir(os.path.join(dst,os.path.basename(src)))
-    print "befor : ",dst
-    hel = os.path.join(dst,os.path.basename(src))
+        shutil.copy2(src, dst)
+    if not os.path.isdir(os.path.join(dst, os.path.basename(src))):
+        os.mkdir(os.path.join(dst, os.path.basename(src)))
+    print "befor : ", dst
+    hel = os.path.join(dst, os.path.basename(src))
     dst = hel
-    print "after : ",dst
+    print "after : ", dst
 
     for file in os.listdir(src):
-        print "\t i : ",file
-        if os.path.isfile(os.path.join(src,file)):
-            shutil.copy2(os.path.join(src,file) , dst)
+        print "\t i : ", file
+        if os.path.isfile(os.path.join(src, file)):
+            shutil.copy2(os.path.join(src, file), dst)
         else:
-            print "\t\t dst : ",os.path.join(dst,file),os.path.isdir(os.path.join(dst,file))
-            if not os.path.isdir(os.path.join(dst,file)):
-                os.mkdir(os.path.join(dst,file))
-            MyCopy(os.path.join(src,file) , os.path.join(dst,file))
+            print "\t\t dst : ", os.path.join(dst, file), os.path.isdir(os.path.join(dst, file))
+            if not os.path.isdir(os.path.join(dst, file)):
+                os.mkdir(os.path.join(dst, file))
+            MyCopy(os.path.join(src, file), os.path.join(dst, file))
