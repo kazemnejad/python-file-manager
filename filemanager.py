@@ -166,6 +166,11 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         deleteAction.triggered.connect(lambda event: self.on_delete(str(path)))
         menu.addAction(deleteAction)
 
+        # NewFolder
+        newFolderAction = QAction("NewFolder", menu)
+        newFolderAction.triggered.connect(lambda event: self.on_newFolder(str(path)))
+        menu.addAction(newFolderAction)
+
         menu.exec_(self.rightPane.viewport().mapToGlobal(position))
 
     def on_cut(self, path):
@@ -180,9 +185,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def on_paste(self, dst):
         if dst is None or len(dst) == 0:
-            path = str(self.history[self.current_index])
-            return self.on_paste(path)
-
+            dst = str(self.history[self.current_index])
         if self.FLAGCOPY == 1:
             t = threading.Thread(target=MyCopy(self.SRC, dst))
         elif self.FLAGCOPY == 2:
@@ -196,6 +199,20 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         else:
             shutil.rmtree(src)
         print src
+    def on_newFolder(self , dst):
+        if dst is None or len(dst) == 0:
+            dst = str(self.history[self.current_index])
+        hel = "newFolder"
+        print "hel : ",hel
+        if not os.path.isdir(os.path.join(dst,hel)):
+            os.mkdir(os.path.join(dst,hel))
+        else:
+            count = 1
+            while  os.path.isdir(os.path.join(dst,hel+str(count))):
+                print "count : " , count
+                count += 1
+            print "Dst : ",os.path.join(dst,hel + str(count))
+            os.mkdir(os.path.join(dst,hel + str(count)))
 
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
