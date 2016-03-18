@@ -137,7 +137,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         menu.addAction(copyAction)
 
         # paste
-        if(self.FLAGCOPY):
+        if(self.FLAGCOPY and not(os.path.isfile(str(path)))):
             pasteAction = QAction("Paste", menu)
             pasteAction.triggered.connect(lambda event: self.on_paste(str(path)))
             menu.addAction(pasteAction)
