@@ -35,7 +35,9 @@ Sensitive or high-churn files:
 # IntelliJ
 /out/'
 
+.idea/*
 .idea/vcs.xml
+.idea/misc.xml
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
