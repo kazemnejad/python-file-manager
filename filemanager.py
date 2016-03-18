@@ -74,6 +74,9 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.header().setMovable(False)
         self.rightPane.header().setResizeMode(0, QHeaderView.Stretch)
 
+        self.rightPane.enterKeyPressed.connect(self.on_right_pane_item_clicked)
+        self.rightPane.backspaceKeyPressed.connect(self.on_back)
+
     def init_actions(self):
         self.tbActionBack.triggered.connect(self.on_back)
         self.tbActionForward.triggered.connect(self.on_forward)
