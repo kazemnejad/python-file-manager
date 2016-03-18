@@ -147,6 +147,11 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         deleteAction.triggered.connect(lambda event: self.on_delete(str(path)))
         menu.addAction(deleteAction)
 
+        #cut
+        cutAction = QAction("Cut" , menu)
+        cutAction.triggered.connect(lambda event: self.on_copy(str(path)))
+        menu.addAction(cutAction)
+
         menu.exec_(self.rightPane.viewport().mapToGlobal(position))
 
     def on_copy(self, path):
@@ -214,6 +219,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             subprocess.call(('xdg-open', filepath))
 def MyCopy(src , dst):
     print "src : ",src," dst : " , dst
+    if os.path.isfile(src):
+        shutil.copy2(src , dst)
     for file in os.listdir(src):
         print "\t i : ",file
         if os.path.isfile(os.path.join(src,file)):
