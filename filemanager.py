@@ -79,6 +79,10 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.enterKeyPressed.connect(self.on_right_pane_item_clicked)
         self.rightPane.backspaceKeyPressed.connect(self.on_back)
 
+        self.rightPane.copyKeysPressed.connect(self.on_copy_keys_pressed)
+        self.rightPane.cutKeysPressed.connect(self.on_cut_keys_pressed)
+        self.rightPane.pasteKeysPressed.connect(self.on_paste_keys_pressed)
+
     def init_actions(self):
         self.tbActionBack.triggered.connect(self.on_back)
         self.tbActionForward.triggered.connect(self.on_forward)
@@ -114,6 +118,17 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         index = self.leftPaneFileModel.index(path)
         self.leftPaneFileModel.emit()
+
+    def on_copy_keys_pressed(self, index):
+        path = str(self.rightPaneFileModel.filePath(index))
+        self.on_copy(path)
+
+    def on_cut_keys_pressed(self, index):
+        path = str(self.rightPaneFileModel.filePath(index))
+        self.on_cut(path)
+
+    def on_paste_keys_pressed(self, index):
+        self.on_paste(None)
 
     def update_left_pane(self, path, enterType):
         leftIndex = self.leftPaneFileModel.index(path, 0)
