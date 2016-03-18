@@ -15,7 +15,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     NORMAL = 0
     FORWARD = 1
     BACK = 2
-    FLAGCOPY = False
+    FLAGCOPY = 0
     SRC = ''
     def __init__(self):
         super(FileManager, self).__init__()
@@ -131,13 +131,18 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         index = self.rightPane.indexAt(position)
         path = self.rightPaneFileModel.filePath(index)
 
+        #cut
+        cutAction = QAction("Cut" , menu)
+        cutAction.triggered.connect(lambda event: self.on_cut(str(path)))
+        menu.addAction(cutAction)
+
         # copy
         copyAction = QAction("Copy", menu)
         copyAction.triggered.connect(lambda event: self.on_copy(str(path)))
         menu.addAction(copyAction)
 
         # paste
-        if(self.FLAGCOPY and not(os.path.isfile(str(path)))):
+        if(self.FLAGCOPY != 0 and not(os.path.isfile(str(path)))):
             pasteAction = QAction("Paste", menu)
             pasteAction.triggered.connect(lambda event: self.on_paste(str(path)))
             menu.addAction(pasteAction)
@@ -147,20 +152,23 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         deleteAction.triggered.connect(lambda event: self.on_delete(str(path)))
         menu.addAction(deleteAction)
 
-        #cut
-        cutAction = QAction("Cut" , menu)
-        cutAction.triggered.connect(lambda event: self.on_copy(str(path)))
-        menu.addAction(cutAction)
-
         menu.exec_(self.rightPane.viewport().mapToGlobal(position))
 
+    def on_cut(self, path):
+        self.FLAGCOPY = 2
+        self.SRC = path
+        print path
+
     def on_copy(self, path):
-        self.FLAGCOPY = True
+        self.FLAGCOPY = 1
         self.SRC = path
         print path
 
     def on_paste(self, dst):
-        t = threading.Thread(target=MyCopy(self.SRC,dst))
+        if self.FLAGCOPY == 1:
+            t = threading.Thread(target=MyCopy(self.SRC,dst))
+        elif self.FLAGCOPY == 2:
+            t = threading.Thread(target=shutil.move(self.SRC,dst))
         t.start()
         print dst
 
@@ -219,8 +227,16 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             subprocess.call(('xdg-open', filepath))
 def MyCopy(src , dst):
     print "src : ",src," dst : " , dst
+    print "name :",os.path.basename(src)
     if os.path.isfile(src):
         shutil.copy2(src , dst)
+    if not os.path.isdir(os.path.join(dst,os.path.basename(src))):
+        os.mkdir(os.path.join(dst,os.path.basename(src)))
+    print "befor : ",dst
+    hel = os.path.join(dst,os.path.basename(src))
+    dst = hel
+    print "after : ",dst
+
     for file in os.listdir(src):
         print "\t i : ",file
         if os.path.isfile(os.path.join(src,file)):
