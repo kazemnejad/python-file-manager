@@ -1,4 +1,6 @@
 import os
+import shutil
+import threading
 import subprocess
 from PyQt4 import QtGui
 
@@ -13,7 +15,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     NORMAL = 0
     FORWARD = 1
     BACK = 2
-
+    FLAGCOPY = False
+    SRC = ''
     def __init__(self):
         super(FileManager, self).__init__()
 
@@ -31,7 +34,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_left_pane()
         self.init_right_pane()
 
-        print self.history
+
 
     def init_file_system_model(self):
         self.leftPaneFileModel = QFileSystemModel(self.leftPane)
@@ -127,29 +130,38 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         # copy
         copyAction = QAction("Copy", menu)
-        copyAction.triggered.connect(lambda event: self.on_copy(path))
+        copyAction.triggered.connect(lambda event: self.on_copy(str(path)))
         menu.addAction(copyAction)
 
         # paste
-        pasteAction = QAction("Paste", menu)
-        pasteAction.triggered.connect(lambda event: self.on_paste(path))
-        menu.addAction(pasteAction)
+        if(self.FLAGCOPY):
+            pasteAction = QAction("Paste", menu)
+            pasteAction.triggered.connect(lambda event: self.on_paste(str(path)))
+            menu.addAction(pasteAction)
 
         # delete
         deleteAction = QAction("Delete", menu)
-        deleteAction.triggered.connect(lambda event: self.on_delete(path))
+        deleteAction.triggered.connect(lambda event: self.on_delete(str(path)))
         menu.addAction(deleteAction)
 
         menu.exec_(self.rightPane.viewport().mapToGlobal(position))
 
     def on_copy(self, path):
+        self.FLAGCOPY = True
+        self.SRC = path
         print path
 
-    def on_paste(self, path):
-        print path
+    def on_paste(self, dst):
+        t = threading.Thread(target=MyCopy(self.SRC,dst))
+        t.start()
+        print dst
 
-    def on_delete(self, path):
-        print path
+    def on_delete(self, src):
+        if os.path.isfile(src):
+            os.remove(src)
+        else:
+            shutil.rmtree(src)
+        print src
 
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
@@ -197,3 +209,14 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             os.startfile(filepath)
         elif os.name == 'posix':
             subprocess.call(('xdg-open', filepath))
+def MyCopy(src , dst):
+    print "src : ",src," dst : " , dst
+    for file in os.listdir(src):
+        print "\t i : ",file
+        if os.path.isfile(os.path.join(src,file)):
+            shutil.copy2(os.path.join(src,file) , dst)
+        else:
+            print "\t\t dst : ",os.path.join(dst,file),os.path.isdir(os.path.join(dst,file))
+            if not os.path.isdir(os.path.join(dst,file)):
+                os.mkdir(os.path.join(dst,file))
+            MyCopy(os.path.join(src,file) , os.path.join(dst,file))
