@@ -3,8 +3,8 @@ import subprocess
 from PyQt4 import QtGui
 
 import sys
-from PyQt4.QtCore import QDir, QFileInfo, QSize
-from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette
+from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt
+from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction
 
 from mainForm import Ui_mainWindow
 
@@ -21,6 +21,10 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         self.history = [QDir.homePath()]
         self.current_index = 0
+
+        self.watcher = QFileSystemWatcher()
+        self.watcher.addPath(QDir.homePath())
+        self.watcher.directoryChanged.connect(self.on_dir_changed)
 
         self.init_actions()
         self.init_file_system_model()
@@ -60,11 +64,11 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.doubleClicked.connect(self.on_right_pane_item_clicked)
 
         self.rightPane.setAlternatingRowColors(True)
-        #self.rightPane.hideColumn(1)
-        #self.rightPane.hideColumn(2)
-        #self.rightPane.hideColumn(3)
         self.rightPane.updatesEnabled()
-        self.rightPane.setIconSize(QSize(32,32))
+        self.rightPane.setIconSize(QSize(32, 32))
+
+        self.rightPane.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.rightPane.customContextMenuRequested.connect(self.open_menu)
 
         self.rightPane.header().setStretchLastSection(False)
         self.rightPane.header().setMovable(False)
@@ -97,9 +101,55 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.enter_dir(self.rightPane, self.rightPaneFileModel,
                        self.history[self.current_index + 1], FileManager.FORWARD, False)
 
+    def on_dir_changed(self, path):
+        if path != self.history[self.current_index]: return
+
+        rootIndex = self.rightPaneFileModel.setRootPath(path)
+        self.rightPane.setRootIndex(rootIndex)
+
+        index = self.leftPaneFileModel.index(path)
+        self.leftPaneFileModel.emit()
+
     def update_left_pane(self, path, enterType):
         leftIndex = self.leftPaneFileModel.index(path, 0)
         self.expand_children(leftIndex, self.leftPane, enterType)
+
+    def update_watcher(self, path):
+        self.watcher.removePaths(self.watcher.directories())
+        self.watcher.addPath(path)
+
+    def open_menu(self, position):
+        menu = QMenu()
+
+        # get clicked item file path by its mouse position
+        index = self.rightPane.indexAt(position)
+        path = self.rightPaneFileModel.filePath(index)
+
+        # copy
+        copyAction = QAction("Copy", menu)
+        copyAction.triggered.connect(lambda event: self.on_copy(path))
+        menu.addAction(copyAction)
+
+        # paste
+        pasteAction = QAction("Paste", menu)
+        pasteAction.triggered.connect(lambda event: self.on_paste(path))
+        menu.addAction(pasteAction)
+
+        # delete
+        deleteAction = QAction("Delete", menu)
+        deleteAction.triggered.connect(lambda event: self.on_delete(path))
+        menu.addAction(deleteAction)
+
+        menu.exec_(self.rightPane.viewport().mapToGlobal(position))
+
+    def on_copy(self, path):
+        print path
+
+    def on_paste(self, path):
+        print path
+
+    def on_delete(self, path):
+        print path
 
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
@@ -122,6 +172,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             self.update_left_pane(self.history[self.current_index], enterType)
             self.current_index -= 1
 
+        self.update_watcher(path)
         print self.history
 
     def expand_children(self, index, pane, enterType):
