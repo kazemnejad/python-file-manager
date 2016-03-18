@@ -170,9 +170,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def on_paste(self, dst):
         if dst is None or len(dst) == 0:
-            path = str(self.history[self.current_index])
-            return self.on_paste(path)
-
+            dst = str(self.history[self.current_index])
         if self.FLAGCOPY == 1:
             t = threading.Thread(target=MyCopy(self.SRC, dst))
         elif self.FLAGCOPY == 2:
@@ -187,6 +185,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             shutil.rmtree(src)
         print src
     def on_newFolder(self , dst):
+        if dst is None or len(dst) == 0:
+            dst = str(self.history[self.current_index])
         hel = "newFolder"
         print "hel : ",hel
         if not os.path.isdir(os.path.join(dst,hel)):
