@@ -25,6 +25,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         self.history = [QDir.homePath()]
         self.current_index = 0
+        self.update_indicator()
 
         self.watcher = QFileSystemWatcher()
         self.watcher.addPath(QDir.homePath())
@@ -116,8 +117,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         rootIndex = self.rightPaneFileModel.setRootPath(path)
         self.rightPane.setRootIndex(rootIndex)
 
-        index = self.leftPaneFileModel.index(path)
-        self.leftPaneFileModel.emit()
+        # index = self.leftPaneFileModel.index(path)
+        # self.leftPaneFileModel.emit()
 
     def on_copy_keys_pressed(self, index):
         path = str(self.rightPaneFileModel.filePath(index))
@@ -137,6 +138,13 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     def update_watcher(self, path):
         self.watcher.removePaths(self.watcher.directories())
         self.watcher.addPath(path)
+
+    def update_indicator(self):
+        currentPath = str(self.history[self.current_index])
+        if currentPath.startswith(str(QDir.homePath())):
+            currentPath = currentPath.replace(str(QDir.homePath()), "Home")
+
+        self.pathIndicator.setText(currentPath)
 
     def open_menu(self, position):
         menu = QMenu()
@@ -199,20 +207,21 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         else:
             shutil.rmtree(src)
         print src
-    def on_newFolder(self , dst):
+
+    def on_newFolder(self, dst):
         if dst is None or len(dst) == 0:
             dst = str(self.history[self.current_index])
         hel = "newFolder"
-        print "hel : ",hel
-        if not os.path.isdir(os.path.join(dst,hel)):
-            os.mkdir(os.path.join(dst,hel))
+        print "hel : ", hel
+        if not os.path.isdir(os.path.join(dst, hel)):
+            os.mkdir(os.path.join(dst, hel))
         else:
             count = 1
-            while  os.path.isdir(os.path.join(dst,hel+str(count))):
-                print "count : " , count
+            while os.path.isdir(os.path.join(dst, hel + str(count))):
+                print "count : ", count
                 count += 1
-            print "Dst : ",os.path.join(dst,hel + str(count))
-            os.mkdir(os.path.join(dst,hel + str(count)))
+            print "Dst : ", os.path.join(dst, hel + str(count))
+            os.mkdir(os.path.join(dst, hel + str(count)))
 
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
@@ -235,8 +244,9 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             self.update_left_pane(self.history[self.current_index], enterType)
             self.current_index -= 1
 
+        self.update_indicator()
         self.update_watcher(path)
-        print self.history
+        # print self.history
 
     def expand_children(self, index, pane, enterType):
         if not index.isValid():

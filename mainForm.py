@@ -8,7 +8,7 @@
 
 from PyQt4 import QtCore, QtGui
 
-from PyQt4.QtGui import QPalette
+from PyQt4.QtGui import QPalette, QLineEdit
 
 from widget import SuperTreeView
 
@@ -46,6 +46,7 @@ class Ui_mainWindow(object):
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.horizontalLayout.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
         self.horizontalLayout.setSpacing(0)
+        self.horizontalLayout.setContentsMargins(5, 5, 0, 0)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.leftPane = QtGui.QTreeView(self.centralwidget)
         self.leftPane.setMinimumSize(QtCore.QSize(225, 0))
@@ -84,6 +85,10 @@ class Ui_mainWindow(object):
         self.tbActionForward.setObjectName(_fromUtf8("tbActionForward"))
         self.toolBar.addAction(self.tbActionBack)
         self.toolBar.addAction(self.tbActionForward)
+
+        self.pathIndicator = QLineEdit(self.toolBar)
+        self.pathIndicator.setEnabled(False)
+        self.toolBar.addWidget(self.pathIndicator)
 
         colorName = self.toolBar.palette().color(QPalette.Window).name()
         self.toolBar.setStyleSheet("background-color: " + str(colorName))
