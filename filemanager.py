@@ -9,6 +9,7 @@ from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt
 from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction
 
 from mainForm import Ui_mainWindow
+from widget import GoHappySystemTrayIcon
 
 
 class FileManager(QtGui.QMainWindow, Ui_mainWindow):
@@ -35,6 +36,11 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_file_system_model()
         self.init_left_pane()
         self.init_right_pane()
+        self.init_tray_icon()
+
+    def init_tray_icon(self):
+        self.trayIcon = GoHappySystemTrayIcon()
+        self.trayIcon.show()
 
     def init_file_system_model(self):
         self.leftPaneFileModel = QFileSystemModel(self.leftPane)
