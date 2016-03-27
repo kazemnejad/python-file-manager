@@ -1,13 +1,14 @@
 import os
 import shutil
-import threading
 import subprocess
+import sys
+import threading
 from PyQt4 import QtGui
 
-import sys
 from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt
 from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction
 
+from gohappy import GoHappy
 from mainForm import Ui_mainWindow
 from widget import GoHappySystemTrayIcon
 
@@ -40,6 +41,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def init_tray_icon(self):
         self.trayIcon = GoHappySystemTrayIcon()
+        self.trayIcon.runAction.triggered.connect(lambda event: GoHappy.run_client())
         self.trayIcon.show()
 
     def init_file_system_model(self):

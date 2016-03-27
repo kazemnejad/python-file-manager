@@ -64,6 +64,5 @@ class GoHappySystemTrayIcon(QtGui.QSystemTrayIcon):
         QtGui.QSystemTrayIcon.__init__(self, icon, parent)
 
         menu = QtGui.QMenu(parent)
-        exitAction = menu.addAction("Exit")
-
+        self.runAction = menu.addAction("Run Client")
         self.setContextMenu(menu)
