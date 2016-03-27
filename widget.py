@@ -1,4 +1,6 @@
 import time
+from PyQt4 import QtCore, QtGui
+
 from PyQt4.QtCore import pyqtSignal, Qt, QModelIndex
 from PyQt4.QtGui import QTreeView
 
@@ -19,7 +21,7 @@ class SuperTreeView(QTreeView):
 
     def keyPressEvent(self, event):
         key = event.key()
-        index = self.selectedIndexes()[0]
+        index = self.selectedIndexes()[0] if len(self.selectedIndexes()) > 0 else None
 
         if event.key() == Qt.Key_Control:
             self.start_time = time.time()
@@ -49,3 +51,19 @@ class SuperTreeView(QTreeView):
                 return QTreeView.keyPressEvent(self, event)
 
         event.accept()
+
+    def dragEnterEvent(self, event):
+        event.acceptProposedAction()
+
+
+class GoHappySystemTrayIcon(QtGui.QSystemTrayIcon):
+    def __init__(self, parent=None):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("resources/gohappy.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+
+        QtGui.QSystemTrayIcon.__init__(self, icon, parent)
+
+        menu = QtGui.QMenu(parent)
+        exitAction = menu.addAction("Exit")
+
+        self.setContextMenu(menu)
