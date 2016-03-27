@@ -8,7 +8,7 @@
 
 from PyQt4 import QtCore, QtGui
 
-from PyQt4.QtGui import QPalette, QLineEdit
+from PyQt4.QtGui import QPalette, QLineEdit, QAbstractItemView
 
 from widget import SuperTreeView
 
@@ -60,6 +60,9 @@ class Ui_mainWindow(object):
         self.rightPane.setFrameShape(QtGui.QFrame.StyledPanel)
         self.rightPane.setLineWidth(0)
         self.rightPane.setObjectName(_fromUtf8("rightPane"))
+        self.rightPane.setDragEnabled(True)
+        self.rightPane.setAcceptDrops(True)
+        self.rightPane.setDragDropMode(QAbstractItemView.DragDrop)
         self.horizontalLayout.addWidget(self.rightPane)
         spacerItem = QtGui.QSpacerItem(1, 1, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
