@@ -81,7 +81,7 @@ def get_token():
 
 
 class Context:
-    HOST = "localhost"
+    HOST = "amirhosein.me"
     PORT = 5000
 
     token = ""
