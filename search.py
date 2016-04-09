@@ -3,6 +3,7 @@ from Queue import Queue, Empty
 from threading import Thread, Event
 
 import magic
+import re
 
 from util import Log
 
@@ -26,7 +27,7 @@ class SearchThread(StoppableThread):
         self.foldersQueue = queueFolder
         self.filesQueue = queueFile
 
-        self._target = target
+        self._pattern = target
         self._result = result
 
     def run(self):
@@ -43,9 +44,9 @@ class SearchThread(StoppableThread):
         Log.d(self.name, "finished")
 
     def do_search(self, item):
-        if self._target in os.path.basename(item) and not os.path.isfile(item):
-            self._result.append((item, os.path.basename(item), None, 1))
-
+        score = goHappy_find(self._pattern, os.path.basename(item))
+        if score > 0:
+            self._result.append((item, os.path.basename(item), None, score))
         if os.path.basename(item).startswith("."):
             return
 
@@ -57,8 +58,13 @@ class SearchThread(StoppableThread):
                 self.search_in_dir_name(pth)
 
     def search_in_filename(self, pth):
-        if self._target in os.path.basename(pth):
-            self._result.append((pth, os.path.basename(pth), None, 1))
+        score = goHappy_find(self._pattern, os.path.basename(pth))
+        if 'Type' in self._pattern:
+            score += 2 if os.path.basename(pth).split('.')[-1] == self._pattern['Type'] else -2
+        if 'Kind' in self._pattern:
+            score += 2 if magic.from_file(pth, mime=True).startswith(self._pattern['Kind']) else -2
+        if score > 10:
+            self._result.append((pth, os.path.basename(pth), None, score))
         else:
             self.filesQueue.put(pth)
 
@@ -71,7 +77,7 @@ class FileSearchThread(StoppableThread):
         super(FileSearchThread, self).__init__()
 
         self.filesQueue = queueFile
-        self._target = target
+        self._pattern = target
         self._result = result
 
     def run(self):
@@ -95,8 +101,9 @@ class FileSearchThread(StoppableThread):
 
         with open(item, 'r') as f:
             for line in f:
-                if self._target in line:
-                    self._result.append((item, os.path.basename(item), None, 0))
+                score = goHappy_find(self._pattern, line)
+                if score > 10:
+                    self._result.append((item, os.path.basename(item), None, score))
                     Log.d('in search file :', os.path.dirname(item))
                     break
 
@@ -104,13 +111,13 @@ class FileSearchThread(StoppableThread):
 
 
 class Searcher(StoppableThread):
-    def __init__(self, root_dir, target, result_listener):
+    def __init__(self, root_dir, pattern, result_listener):
         assert callable(result_listener)
 
         super(Searcher, self).__init__()
 
         self._root_dir = root_dir
-        self._target = target
+        self._pattern = goHappy_pattern(pattern)
         self._result_callback = result_listener
 
     def search(self):
@@ -126,14 +133,14 @@ class Searcher(StoppableThread):
 
         s = []
         for i in range(10):
-            t = SearchThread(queueFolder, queueFile, self._target, result)
+            t = SearchThread(queueFolder, queueFile, self._pattern, result)
             t.daemon = True
             t.start()
 
             s.append(t)
 
         for i in range(10):
-            t = FileSearchThread(queueFile, self._target, result)
+            t = FileSearchThread(queueFile, self._pattern, result)
             t.daemon = True
             t.start()
 
@@ -149,13 +156,62 @@ class Searcher(StoppableThread):
         self._result_callback(result)
 
 
+def goHappy_regex(line):
+    typeObject = re.match(r'(type:)(.*)', line)
+    if typeObject:
+        type = typeObject.group(2)
+    bayadObject = re.match(r'(.*) && (.*)', line)
+    if bayadObject:
+        vajeb = bayadObject.group(1)
+        haroom = bayadObject.group(2)
+    patern = r'(' + vajeb + ')+(?!' + haroom + ')+' + '(.*)\.' + '(' + type + ')'
+    return patern
+
+
+# (salam)+(?!hulu)+?
+
+def goHappy_pattern(pattern):
+    helplist = ['vajeb', 'haroom', 'mostahab']
+    lst = pattern.split("||")
+    targets = {}
+    for i in xrange(len(lst)):
+        lst[i] = lst[i].strip()
+        if len(lst[i]) == 0:
+            targets[helplist[i]] = []
+            continue
+        if 'Type:' in lst[i]:
+            targets['Type'] = lst[i].split(':')[1]
+        elif 'Kind:' in lst[i]:
+            targets['Kind'] = lst[i].split(':')[1]
+        else:
+            targets[helplist[i]] = lst[i].split("&&")
+    return targets
+
+
+def goHappy_find(goHappyPattern, line):
+    listOfScore = {'vajeb': 10, 'haroom': -10, 'mostahab': 5,}
+    score = 0
+    for i in goHappyPattern.get('vajeb', []):
+        if i in line:
+            score += listOfScore['vajeb']
+    for i in goHappyPattern.get('haroom', []):
+        if i in line:
+            score += listOfScore['haroom']
+    for i in goHappyPattern.get('mostahab', []):
+        if i in line:
+            score += listOfScore['mostahab']
+    return score
+
+
 if __name__ == '__main__':
     def callback(result): Log.d("\nResults:");[Log.d(i[0]) for i in result]
 
 
     searcher = Searcher(
-            os.path.join(os.path.expanduser('~'), 'Desktop'),
-            "khar",
-            callback
+        os.path.join(os.path.expanduser('~'), 'Desktop'),
+        "Old && FireFox || search",
+        callback
     )
     searcher.search()
+    # s = ' || ne1 && ne2 ||  || Type:txt'
+    # print goHappy_pattern(s)
