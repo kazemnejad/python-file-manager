@@ -10,7 +10,7 @@ from PyQt4 import QtCore, QtGui
 
 from PyQt4.QtGui import QPalette, QLineEdit, QAbstractItemView
 
-from widget import SuperTreeView
+from widget import SuperTreeView, SuperCentralWidget
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -37,7 +37,7 @@ class Ui_mainWindow(object):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(_fromUtf8("resources/gohappy.svg")), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         mainWindow.setWindowIcon(icon)
-        self.centralwidget = QtGui.QWidget(mainWindow)
+        self.centralwidget = SuperCentralWidget(mainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout(self.centralwidget)
         self.horizontalLayout_2.setMargin(0)
