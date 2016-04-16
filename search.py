@@ -1,9 +1,12 @@
 import os
+from PyQt4 import QtCore
 from Queue import Queue, Empty
 from threading import Thread, Event
 
 import magic
 import re
+
+from PyQt4.QtCore import pyqtSignal
 
 from util import Log
 
@@ -41,12 +44,12 @@ class SearchThread(StoppableThread):
                 self.do_search(item)
                 self.foldersQueue.task_done()
 
-        Log.d(self.name, "finished")
+        # Log.d(self.name, "finished")
 
     def do_search(self, item):
         score = goHappy_find(self._pattern, os.path.basename(item))
         if score > 0:
-            self._result.append((item, os.path.basename(item), None, score))
+            self._result.append((item, os.path.basename(item), True, score))
         if os.path.basename(item).startswith("."):
             return
 
@@ -63,8 +66,8 @@ class SearchThread(StoppableThread):
             score += 2 if os.path.basename(pth).split('.')[-1] == self._pattern['Type'] else -2
         if 'Kind' in self._pattern:
             score += 2 if magic.from_file(pth, mime=True).startswith(self._pattern['Kind']) else -2
-        if score > 10:
-            self._result.append((pth, os.path.basename(pth), None, score))
+        if score >= 10:
+            self._result.append((pth, os.path.basename(pth), False, score))
         else:
             self.filesQueue.put(pth)
 
@@ -91,26 +94,28 @@ class FileSearchThread(StoppableThread):
                 self.do_search(item)
                 self.filesQueue.task_done()
 
-        Log.d(self.name, " finished")
+        # Log.d(self.name, " finished")
 
     def do_search(self, item):
         if not magic.from_file(item, mime=True).startswith('text/'):
             return
 
-        Log.d(self.name + ": Searching in file: " + item + " queue size : " + str(self.filesQueue.qsize()))
+        # Log.d(self.name + ": Searching in file: " + item + " queue size : " + str(self.filesQueue.qsize()))
 
         with open(item, 'r') as f:
             for line in f:
                 score = goHappy_find(self._pattern, line)
-                if score > 10:
-                    self._result.append((item, os.path.basename(item), None, score))
+                if score >= 10:
+                    self._result.append((item, os.path.basename(item), False, score))
                     Log.d('in search file :', os.path.dirname(item))
                     break
 
-        Log.d(self.name + ": Ending search in file: " + item + " queue size : " + str(self.filesQueue.qsize()))
+        # Log.d(self.name + ": Ending search in file: " + item + " queue size : " + str(self.filesQueue.qsize()))
 
 
-class Searcher(StoppableThread):
+class Searcher(QtCore.QThread):
+    updateSignal = pyqtSignal(list)
+
     def __init__(self, root_dir, pattern, result_listener):
         assert callable(result_listener)
 
@@ -121,6 +126,9 @@ class Searcher(StoppableThread):
         self._result_callback = result_listener
 
     def search(self):
+        self.start()
+
+    def run(self):
         queueFolder = Queue()
         queueFile = Queue()
 
@@ -153,7 +161,7 @@ class Searcher(StoppableThread):
             t.stop()
             t.join()
 
-        self._result_callback(result)
+        self.updateSignal.emit(result)
 
 
 def goHappy_regex(line):
@@ -200,17 +208,18 @@ def goHappy_find(goHappyPattern, line):
     for i in goHappyPattern.get('mostahab', []):
         if i in line:
             score += listOfScore['mostahab']
+
     return score
 
 
 if __name__ == '__main__':
-    def callback(result): Log.d("\nResults:");[Log.d(i[0]) for i in result]
+    def callback(result): Log.d("\nResults:");[Log.d(str(i)) for i in result]
 
 
     searcher = Searcher(
-        os.path.join(os.path.expanduser('~'), 'Desktop'),
-        "Old && FireFox || search",
-        callback
+            os.path.join(os.path.expanduser('~'), 'Desktop'),
+            "khar",
+            callback
     )
     searcher.search()
     # s = ' || ne1 && ne2 ||  || Type:txt'

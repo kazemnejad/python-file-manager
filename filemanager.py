@@ -5,12 +5,62 @@ import sys
 import threading
 from PyQt4 import QtGui
 
-from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt
-from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction
+from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt, pyqtSignal
+from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction, QProgressDialog, QStandardItemModel, \
+    QStandardItem, QFileIconProvider
 
+from findForm import Ui_FindWindow
 from gohappy import GoHappy
 from mainForm import Ui_mainWindow
+from search import Searcher
 from widget import GoHappySystemTrayIcon
+
+
+class Find(QtGui.QMainWindow, Ui_FindWindow):
+    def __init__(self, callback, current_path, parent=None):
+        super(Find, self).__init__(parent)
+
+        self.setupUi(self)
+
+        self.listener_callback = callback
+        self.path = str(current_path)
+
+        self.setWindowTitle("Search in " + self.path)
+
+        self.btnFind.pressed.connect(self.on_find_pressed)
+        self.btnCancel.pressed.connect(self.on_cancel_pressed)
+        self.queryEdit.returnPressed.connect(self.on_find_pressed)
+
+        self.progressbar = QProgressDialog(self)
+        self.progressbar.setWindowTitle("Please wait...")
+        self.progressbar.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        self.progressbar.setCancelButton(None)
+        self.progressbar.setModal(True)
+        self.progressbar.setRange(0, 0)
+
+    def on_cancel_pressed(self):
+        self.close()
+
+    def on_find_pressed(self):
+        query = str(self.queryEdit.text())
+        if len(query) == 0:
+            return
+
+        print self.path
+
+        searcher = Searcher(self.path, query, self.on_finished)
+        searcher.search()
+
+        searcher.updateSignal.connect(self.on_finished)
+
+        self.progressbar.exec_()
+
+    def on_finished(self, results):
+        self.progressbar.cancel()
+        self.progressbar.close()
+
+        self.close()
+        self.listener_callback(results)
 
 
 class FileManager(QtGui.QMainWindow, Ui_mainWindow):
@@ -91,12 +141,21 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.rightPane.copyKeysPressed.connect(self.on_copy_keys_pressed)
         self.rightPane.cutKeysPressed.connect(self.on_cut_keys_pressed)
         self.rightPane.pasteKeysPressed.connect(self.on_paste_keys_pressed)
+        self.rightPane.findKeysPressed.connect(self.on_find_keys_pressed)
+
+        self.centralwidget.findKeysPressed.connect(self.on_find_keys_pressed)
 
     def init_actions(self):
         self.tbActionBack.triggered.connect(self.on_back)
         self.tbActionForward.triggered.connect(self.on_forward)
 
     def on_right_pane_item_clicked(self, index):
+        data = index.data(9).toPyObject()
+        if data:
+            if not data[-2]:
+                self.open_file(data[0])
+            return
+
         path = self.rightPaneFileModel.filePath(index)
 
         fileInfo = QFileInfo(path)
@@ -138,6 +197,30 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def on_paste_keys_pressed(self, index):
         self.on_paste(None)
+
+    def on_find_keys_pressed(self):
+        current_path = self.history[self.current_index]
+
+        w = Find(self.on_search_result_received, current_path, self)
+        w.show()
+
+    def on_search_result_received(self, result):
+        self.search_model = QStandardItemModel()
+        parent = self.search_model.invisibleRootItem()
+
+        iconProvider = QFileIconProvider()
+        result.sort(reverse=True, key=lambda x: x[-1])
+        for i in result:
+            item = QStandardItem()
+            item.setText(i[1])
+            item.setData(i, 9)
+            item.setIcon(iconProvider.icon(QFileIconProvider.Folder if i[-2] else QFileIconProvider.File))
+            item.setEditable(False)
+
+            parent.appendRow(item)
+
+        self.rightPane.setModel(self.search_model)
+        self.rightPane.setRootIndex(parent.index())
 
     def update_left_pane(self, path, enterType):
         leftIndex = self.leftPaneFileModel.index(path, 0)
