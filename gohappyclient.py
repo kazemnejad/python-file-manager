@@ -62,9 +62,9 @@ def get_path_result(pth):
     for f in dirs:
         if f.startswith('.'):
             continue
-        
-        fi = f, os.path.join(pth, f), is_dir
+
         is_dir = os.path.isdir(os.path.join(pth, f))
+        fi = f, os.path.join(pth, f), is_dir
 
         if is_dir:
             folders.append(fi)
