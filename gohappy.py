@@ -13,6 +13,7 @@ from socketIO_client import BaseNamespace, SocketIO
 
 login_thread = None
 register_thread = None
+socket_io_thread = None
 
 
 class GoHappy(object):
@@ -28,7 +29,7 @@ class GoHappy(object):
     def __init__(self, token, ready_listener=None):
         assert GoHappy._instance_counter == 0
         assert token is not None
-        assert ready_listener is None or callable(ready_listener)
+        assert ready_listener is not None or callable(ready_listener)
 
         self.is_new_connection_opened = False
 
@@ -45,6 +46,12 @@ class GoHappy(object):
         GoHappy._instance_counter += 1
 
         self.socket_thread = SocketThread(self, self.set_namespace, GoHappyNamespace)
+        self.socket_thread._set_is_connected.connect(self._set_is_connected)
+        self.socket_thread._on_new_connection.connect(self._on_new_connection)
+        self.socket_thread._set_new_connection_established.connect(self._set_new_connection_established)
+        self.socket_thread._on_start_exploration_result_received.connect(self._on_start_exploration_result_received)
+        self.socket_thread._on_files_received.connect(self._on_files_received)
+
         self.socket_thread.start()
 
     def start_new_connection(self, listen_callback):
@@ -261,12 +268,12 @@ class GoHappyNamespace(BaseNamespace):
 
     def on_connect(self):
         print '\n[connected]'
-        self._context._set_is_connected(True)
+        self._context._set_is_connected.emit(True)
 
     def on_disconnect(self):
         print '\n[disconnected]'
-        self._context._set_is_connected(False)
-        self._context._set_new_connection_established(False)
+        self._context._set_is_connected.emit(False)
+        self._context._set_new_connection_established.emit(False)
 
     def on_event(self, event, *args):
         print '\n[on_' + event + ']'
@@ -283,17 +290,17 @@ class GoHappyNamespace(BaseNamespace):
 
         if data.get(EventFields.RESULT, ResponseCode.FAILED) == ResponseCode.SUCCESSFUL:
             print "[new connection established]"
-            self._context._set_new_connection_established(True)
-            self._context._on_new_connection(True)
+            self._context._set_new_connection_established.emit(True)
+            self._context._on_new_connection.emit(True)
         else:
             print "[new connection failed]"
-            self._context._set_new_connection_established(False)
-            self._context._on_new_connection(False)
+            self._context._set_new_connection_established.emit(False)
+            self._context._on_new_connection.emit(False)
 
     def handle_new_exploration_result(self, *args):
         data = args[0]
 
-        self._context._on_start_exploration_result_received(
+        self._context._on_start_exploration_result_received.emit(
             data.get(EventFields.RESULT),
             data.get(EventFields.MESSAGE),
             data.get(EventFields.ANSWER),
@@ -304,7 +311,7 @@ class GoHappyNamespace(BaseNamespace):
     def handle_path_request_response(self, *args):
         data = args[0]
 
-        self._context._on_files_received(
+        self._context._on_files_received.emit(
             data.get(EventFields.RESULT),
             data.get(EventFields.MESSAGE),
             data.get(EventFields.REQUEST_CODE),
@@ -332,7 +339,13 @@ class GoHappyNamespace(BaseNamespace):
         })
 
 
-class SocketThread(Thread):
+class SocketThread(QThread):
+    _set_is_connected = pyqtSignal(bool)
+    _set_new_connection_established = pyqtSignal(bool)
+    _on_new_connection = pyqtSignal(bool)
+    _on_start_exploration_result_received = pyqtSignal(int, int, int, str, str)
+    _on_files_received = pyqtSignal(int, int, str, str, list)
+
     def __init__(self, gohappy, callback, namespace):
         super(SocketThread, self).__init__()
 
@@ -346,7 +359,7 @@ class SocketThread(Thread):
         socketio = SocketIO(GoHappy.HOST, GoHappy.PORT, transports=['xhr-polling'])
 
         namespace = socketio.define(self._ns)
-        namespace.init_with(self._gohappy)
+        namespace.init_with(self)
 
         self.gohappy_set_namespace(namespace)
 
@@ -372,4 +385,3 @@ class HttpRequestWorker(QThread):
 
         data = r.json()
         self.finishSignal.emit(data)
-        # self.callback(data)

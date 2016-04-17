@@ -128,6 +128,10 @@ class RegisterWindow(QtGui.QMainWindow, Ui_RegisterWindow):
                 self.label.setText("Register Failed")
 
 
+class NewConnection:
+    pass
+
+
 class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     NORMAL = 0
     FORWARD = 1
@@ -153,8 +157,9 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_left_pane()
         self.init_right_pane()
         self.init_tray_icon()
-
         self.init_menu()
+
+        self.gohappy = None
 
     def init_tray_icon(self):
         self.trayIcon = GoHappySystemTrayIcon()
@@ -324,6 +329,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.menubar.clear()
         self.create_logOut_menu(username)
 
+        self.gohappy = GoHappy(GoHappy.load_token(), self.on_ready_listener)
+
     def on_logOut(self):
         GoHappy.delete_token()
         self.menubar.clear()
@@ -420,6 +427,15 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
                 count += 1
             print "Dst : ", os.path.join(dst, hel + str(count))
             os.mkdir(os.path.join(dst, hel + str(count)))
+
+    # GoHappy Server
+    def on_ready_listener(self, instance):
+        self.gohappy.start_new_connection(self.on_new_connection_result)
+
+    def on_new_connection_result(self, is_successful):
+        if not is_successful:
+            self.gohappy.start_new_connection(self.on_new_connection_result)
+            return
 
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
