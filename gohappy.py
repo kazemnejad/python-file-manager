@@ -6,12 +6,17 @@ from os import path
 from os.path import expanduser
 from threading import Thread
 
+from PyQt4.QtCore import QThread, pyqtSignal
+
 from gohappygenerics import EventFields, ClientEvents, ServerEvents, ResponseCode, ExplorerEvents, ExplorationResponse
 from socketIO_client import BaseNamespace, SocketIO
 
+login_thread = None
+register_thread = None
+
 
 class GoHappy(object):
-    HOST = "localhost"
+    HOST = "amirhosein.me"
     PORT = 5000
 
     BASE_URL = 'http://' + HOST + ':' + str(PORT)
@@ -132,6 +137,8 @@ class GoHappy(object):
 
     @staticmethod
     def login(username, password, callback):
+        global login_thread
+
         url = GoHappy.BASE_URL + GoHappy.LOGIN_URL
         data = {'username': username, 'password': password}
 
@@ -139,11 +146,13 @@ class GoHappy(object):
                              dt.get(EventFields.MESSAGE),
                              dt.get(EventFields.TOKEN))
 
-        worker = HttpRequestWorker(url, data, 'post', cb)
-        worker.start()
+        login_thread = HttpRequestWorker(url, data, 'post', cb)
+        login_thread.finishSignal.connect(lambda (dt): cb(dt))
+        login_thread.start()
 
     @staticmethod
     def register(username, password, callback):
+        global register_thread
         url = GoHappy.BASE_URL + GoHappy.REGISTER_URL
         data = {'username': username, 'password': password}
 
@@ -152,13 +161,19 @@ class GoHappy(object):
                              dt.get(EventFields.TOKEN),
                              dt.get(EventFields.USER_ID))
 
-        worker = HttpRequestWorker(url, data, 'post', cb)
-        worker.start()
+        register_thread = HttpRequestWorker(url, data, 'post', cb)
+        register_thread.finishSignal.connect(lambda (dt): cb(dt))
+        register_thread.start()
 
     @staticmethod
     def save_token(token):
         assert token
-        config_path = path.join(expanduser('~'), '.gohappy', 'client.conf')
+        config_parent_path = path.join(expanduser('~'), '.gohappy')
+        config_path = path.join(config_parent_path, 'client.conf')
+
+        if not os.path.exists(config_parent_path):
+            os.mkdir(config_parent_path)
+
         with open(config_path, 'w') as f:
             f.write(token)
             f.close()
@@ -271,22 +286,22 @@ class GoHappyNamespace(BaseNamespace):
         data = args[0]
 
         self._context._on_start_exploration_result_received(
-                data.get(EventFields.RESULT),
-                data.get(EventFields.MESSAGE),
-                data.get(EventFields.ANSWER),
-                data.get(EventFields.SESSION_ID),
-                data.get(EventFields.SOURCE)
+            data.get(EventFields.RESULT),
+            data.get(EventFields.MESSAGE),
+            data.get(EventFields.ANSWER),
+            data.get(EventFields.SESSION_ID),
+            data.get(EventFields.SOURCE)
         )
 
     def handle_path_request_response(self, *args):
         data = args[0]
 
         self._context._on_files_received(
-                data.get(EventFields.RESULT),
-                data.get(EventFields.MESSAGE),
-                data.get(EventFields.REQUEST_CODE),
-                data.get(EventFields.SESSION_ID),
-                data.get(EventFields.RESPONSE_DATA)
+            data.get(EventFields.RESULT),
+            data.get(EventFields.MESSAGE),
+            data.get(EventFields.REQUEST_CODE),
+            data.get(EventFields.SESSION_ID),
+            data.get(EventFields.RESPONSE_DATA)
         )
 
     def start_new_connection(self):
@@ -330,7 +345,9 @@ class SocketThread(Thread):
         socketio.wait()
 
 
-class HttpRequestWorker(Thread):
+class HttpRequestWorker(QThread):
+    finishSignal = pyqtSignal(dict)
+
     def __init__(self, url, data, method, callback):
         super(HttpRequestWorker, self).__init__()
         self.url = url
@@ -346,4 +363,5 @@ class HttpRequestWorker(Thread):
             r = requests.post(self.url, data=self.data)
 
         data = r.json()
-        self.callback(data)
+        self.finishSignal.emit(data)
+        # self.callback(data)
