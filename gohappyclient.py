@@ -58,11 +58,17 @@ def get_path_result(pth):
 
     dirs = os.listdir(pth)
     files = []
+    folders = []
     for f in dirs:
-        fi = f, os.path.join(pth, f), os.path.isdir(os.path.join(pth, f))
-        files.append(fi)
+        is_dir = os.path.isdir(os.path.join(pth, f))
+        fi = f, os.path.join(pth, f), is_dir
 
-    return None, files
+        if is_dir:
+            folders.append(fi)
+        else:
+            files.append(fi)
+
+    return None, folders + files
 
 
 def get_token():
