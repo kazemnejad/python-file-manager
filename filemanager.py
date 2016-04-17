@@ -11,7 +11,10 @@ from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction,
 
 from findForm import Ui_FindWindow
 from gohappy import GoHappy
+from gohappygenerics import AuthResponceCode
+from loginForm import Ui_LoginWindow
 from mainForm import Ui_mainWindow
+from registerForm import Ui_RegisterWindow
 from search import Searcher
 from widget import GoHappySystemTrayIcon
 
@@ -63,6 +66,68 @@ class Find(QtGui.QMainWindow, Ui_FindWindow):
         self.listener_callback(results)
 
 
+class LoginWindow(QtGui.QMainWindow, Ui_LoginWindow):
+    def __init__(self, parent, callback):
+        super(LoginWindow, self).__init__(parent)
+
+        self.setupUi(self)
+        self.btnCancel.pressed.connect(self.close)
+        self.passwordEdit.returnPressed.connect(self.on_login_clicked)
+        self.loginBtn.pressed.connect(self.on_login_clicked)
+
+        self.successful_login_listener = callback
+
+    def on_login_clicked(self):
+        username = str(self.usernameEdit.text())
+        password = str(self.passwordEdit.text())
+
+        if len(username) == 0 or len(password) == 0:
+            return
+        self.username = username
+        GoHappy.login(username, password, self.on_result_received)
+        self.loginBtn.setEnabled(False)
+
+    def on_result_received(self, result, msg, token):
+        if result:
+            if result == AuthResponceCode.SUCCESS and token:
+                GoHappy.save_token(token)
+                self.close()
+                self.successful_login_listener(self.username)
+            elif result == AuthResponceCode.FAIL:
+                self.label.setText("Login Failed")
+
+
+class RegisterWindow(QtGui.QMainWindow, Ui_RegisterWindow):
+    def __init__(self, parent, callback):
+        super(RegisterWindow, self).__init__(parent)
+
+        self.setupUi(self)
+        self.btnCancel.pressed.connect(self.close)
+        self.passwordRepEdit.returnPressed.connect(self.on_register_clicked)
+        self.registerBtn.pressed.connect(self.on_register_clicked)
+
+        self.successful_login_listener = callback
+
+    def on_register_clicked(self):
+        username = str(self.usernameEdit.text())
+        password = str(self.passwordEdit.text())
+        passwordRep = str(self.passwordRepEdit.text())
+        if len(username) == 0 or len(password) == 0 or len(passwordRep) == 0 or password != passwordRep:
+            return
+        self.username = username
+        GoHappy.register(username, password, self.on_result_received)
+        self.registerBtn.setEnabled(False)
+
+    def on_result_received(self, result, msg, token, user_id):
+        if result:
+            if result == AuthResponceCode.SUCCESS and token:
+                GoHappy.save_token(token)
+                self.close()
+                self.successful_login_listener(self.username)
+            elif result == AuthResponceCode.FAIL:
+                self.label.setText("Register Failed")
+
+
 class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     NORMAL = 0
     FORWARD = 1
@@ -88,6 +153,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_left_pane()
         self.init_right_pane()
         self.init_tray_icon()
+
+        self.init_menu()
 
     def init_tray_icon(self):
         self.trayIcon = GoHappySystemTrayIcon()
@@ -148,6 +215,25 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
     def init_actions(self):
         self.tbActionBack.triggered.connect(self.on_back)
         self.tbActionForward.triggered.connect(self.on_forward)
+
+        self.loginAction = QAction('Login', self)
+        self.loginAction.triggered.connect(self.on_login)
+        self.loginAction.setShortcut('F11')
+        self.loginAction.setStatusTip('Login To GoHappy')
+
+        self.registerAction = QAction('Register', self)
+        self.registerAction.triggered.connect(self.on_register)
+        self.registerAction.setShortcut('F12')
+        self.registerAction.setStatusTip('Register In GoHappy')
+
+        self.logOutAction = QAction('LogOut', self)
+        self.logOutAction.triggered.connect(self.on_logOut)
+
+    def init_menu(self):
+        menubar = self.menuBar()
+        self.mainMenu = menubar.addMenu('GoHappy')
+        self.mainMenu.addAction(self.loginAction)
+        self.mainMenu.addAction(self.registerAction)
 
     def on_right_pane_item_clicked(self, index):
         data = index.data(9).toPyObject()
@@ -221,6 +307,27 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         self.rightPane.setModel(self.search_model)
         self.rightPane.setRootIndex(parent.index())
+
+    def on_login(self):
+        loginWindow = LoginWindow(self, self.on_successful_login)
+        loginWindow.show()
+
+    def on_register(self):
+        regWindow = RegisterWindow(self, self.on_successful_login)
+        regWindow.show()
+
+    def create_logOut_menu(self, username):
+        self.logoutMenu = self.menuBar().addMenu(username)
+        self.logoutMenu.addAction(self.logOutAction)
+
+    def on_successful_login(self, username):
+        self.menubar.clear()
+        self.create_logOut_menu(username)
+
+    def on_logOut(self):
+        GoHappy.delete_token()
+        self.menubar.clear()
+        self.init_menu()
 
     def update_left_pane(self, path, enterType):
         leftIndex = self.leftPaneFileModel.index(path, 0)

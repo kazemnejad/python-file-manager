@@ -190,6 +190,14 @@ class GoHappy(object):
         return token.strip()
 
     @staticmethod
+    def delete_token():
+        config_parent_path = path.join(expanduser('~'), '.gohappy')
+        config_path = path.join(config_parent_path, 'client.conf')
+
+        if os.path.exists(config_parent_path):
+            os.remove(config_path)
+
+    @staticmethod
     def get_name(file_info):
         try:
             return file_info[0]
