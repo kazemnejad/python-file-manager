@@ -344,22 +344,21 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         w = Find(self.on_search_result_received, current_path, self)
         w.show()
-
-    def on_search_result_received(self, result):
-        self.search_model = QStandardItemModel()
-        parent = self.search_model.invisibleRootItem()
-
+    def make_treeview_with_list(self , list , text , data):
         iconProvider = QFileIconProvider()
-        result.sort(reverse=True, key=lambda x: x[-1])
-        for i in result:
+        parent = self.search_model.invisibleRootItem()
+        for i in list:
             item = QStandardItem()
-            item.setText(i[1])
-            item.setData(i, 9)
+            item.setText(i[text])
+            item.setData(i,data)
             item.setIcon(iconProvider.icon(QFileIconProvider.Folder if i[-2] else QFileIconProvider.File))
             item.setEditable(False)
-
             parent.appendRow(item)
-
+        return parent
+    def on_search_result_received(self, result):
+        self.search_model = QStandardItemModel()
+        result.sort(reverse=True, key=lambda x: x[-1])
+        parent = self.make_treeview_with_list(result,1,9)
         self.rightPane.setModel(self.search_model)
         self.rightPane.setRootIndex(parent.index())
 
