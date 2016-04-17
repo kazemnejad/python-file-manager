@@ -187,6 +187,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.session_id = None
         self.exploration_progress_bar = None
         self.source_username = None
+        self.remote_model = None
         self.is_remote = False
 
     def init_tray_icon(self):
@@ -344,21 +345,23 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         w = Find(self.on_search_result_received, current_path, self)
         w.show()
-    def make_treeview_with_list(self , list , text , data):
+
+    def make_treeview_with_list(self, list, text, is_folder, data, model):
         iconProvider = QFileIconProvider()
-        parent = self.search_model.invisibleRootItem()
+        parent = model.invisibleRootItem()
         for i in list:
             item = QStandardItem()
             item.setText(i[text])
-            item.setData(i,data)
-            item.setIcon(iconProvider.icon(QFileIconProvider.Folder if i[-2] else QFileIconProvider.File))
+            item.setData(i, data)
+            item.setIcon(iconProvider.icon(QFileIconProvider.Folder if i[is_folder] else QFileIconProvider.File))
             item.setEditable(False)
             parent.appendRow(item)
         return parent
+
     def on_search_result_received(self, result):
         self.search_model = QStandardItemModel()
         result.sort(reverse=True, key=lambda x: x[-1])
-        parent = self.make_treeview_with_list(result,1,9)
+        parent = self.make_treeview_with_list(result, 1, -2, 9, self.search_model)
         self.rightPane.setModel(self.search_model)
         self.rightPane.setRootIndex(parent.index())
 
@@ -507,12 +510,12 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def on_new_exploration_result(self, session_id, is_successful, is_source_offline, is_permission_denied):
         if is_successful and session_id:
-            self.session_id = session_id
+            self.session_id = str(session_id)
             self.leftPane.setEnabled(False)
             self.is_remote = True
             show_notification('Exploration started!', 'Exploring ' + self.source_username)
 
-            self.gohappy.get_files(session_id, 'home', self.on_file_request_result)
+            self.gohappy.get_files(self.session_id, 'home', self.on_file_request_result)
         else:
             if self.exploration_progress_bar:
                 self.exploration_progress_bar.close()
@@ -530,7 +533,13 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             self.exploration_progress_bar.close()
 
         if is_successful or len(data) > 0:
-            pass
+            self.remote_model = QStandardItemModel()
+
+            print data
+
+            parent = self.make_treeview_with_list(data, 0, 2, 9, self.remote_model)
+            self.rightPane.setModel(self.remote_model)
+            self.rightPane.setRootIndex(parent.index())
         else:
             msg = 'Sorry, Unable to fetch new data, please try again :('
             if error == PathResult.ACCESS_DENIED:
@@ -549,7 +558,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             return
 
         try:
-            path = data[0]
+            path = str(data[1])
         except:
             return
 
