@@ -301,22 +301,22 @@ class GoHappyNamespace(BaseNamespace):
         data = args[0]
 
         self._context._on_start_exploration_result_received.emit(
-            data.get(EventFields.RESULT),
-            data.get(EventFields.MESSAGE),
-            data.get(EventFields.ANSWER),
-            data.get(EventFields.SESSION_ID),
-            data.get(EventFields.SOURCE)
+                data.get(EventFields.RESULT),
+                data.get(EventFields.MESSAGE),
+                data.get(EventFields.ANSWER),
+                data.get(EventFields.SESSION_ID) if data.get(EventFields.SESSION_ID) else "",
+                data.get(EventFields.SOURCE) if data.get(EventFields.SESSION_ID) else "",
         )
 
     def handle_path_request_response(self, *args):
         data = args[0]
 
         self._context._on_files_received.emit(
-            data.get(EventFields.RESULT),
-            data.get(EventFields.MESSAGE),
-            data.get(EventFields.REQUEST_CODE),
-            data.get(EventFields.SESSION_ID),
-            data.get(EventFields.RESPONSE_DATA)
+                data.get(EventFields.RESULT),
+                data.get(EventFields.MESSAGE),
+                data.get(EventFields.REQUEST_CODE),
+                data.get(EventFields.SESSION_ID) if data.get(EventFields.SESSION_ID) else "",
+                data.get(EventFields.RESPONSE_DATA) if data.get(EventFields.RESPONSE_DATA) else []
         )
 
     def start_new_connection(self):

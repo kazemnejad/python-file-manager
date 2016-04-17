@@ -4,14 +4,16 @@ import subprocess
 import sys
 import threading
 from PyQt4 import QtGui
+from gi.repository import Notify, GdkPixbuf
 
-from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt, pyqtSignal
+from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt
 from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction, QProgressDialog, QStandardItemModel, \
-    QStandardItem, QFileIconProvider
+    QStandardItem, QFileIconProvider, QMessageBox
 
+from NewConnectionForm import Ui_NewConnectionWindow
 from findForm import Ui_FindWindow
 from gohappy import GoHappy
-from gohappygenerics import AuthResponceCode
+from gohappygenerics import AuthResponceCode, PathResult
 from loginForm import Ui_LoginWindow
 from mainForm import Ui_mainWindow
 from registerForm import Ui_RegisterWindow
@@ -24,6 +26,7 @@ class Find(QtGui.QMainWindow, Ui_FindWindow):
         super(Find, self).__init__(parent)
 
         self.setupUi(self)
+        move_to_center_of_parent(parent, self)
 
         self.listener_callback = callback
         self.path = str(current_path)
@@ -71,6 +74,8 @@ class LoginWindow(QtGui.QMainWindow, Ui_LoginWindow):
         super(LoginWindow, self).__init__(parent)
 
         self.setupUi(self)
+        move_to_center_of_parent(parent, self)
+
         self.btnCancel.pressed.connect(self.close)
         self.passwordEdit.returnPressed.connect(self.on_login_clicked)
         self.loginBtn.pressed.connect(self.on_login_clicked)
@@ -102,6 +107,8 @@ class RegisterWindow(QtGui.QMainWindow, Ui_RegisterWindow):
         super(RegisterWindow, self).__init__(parent)
 
         self.setupUi(self)
+        move_to_center_of_parent(parent, self)
+
         self.btnCancel.pressed.connect(self.close)
         self.passwordRepEdit.returnPressed.connect(self.on_register_clicked)
         self.registerBtn.pressed.connect(self.on_register_clicked)
@@ -128,8 +135,25 @@ class RegisterWindow(QtGui.QMainWindow, Ui_RegisterWindow):
                 self.label.setText("Register Failed")
 
 
-class NewConnection:
-    pass
+class NewConnection(QtGui.QMainWindow, Ui_NewConnectionWindow):
+    def __init__(self, parent, callback):
+        super(NewConnection, self).__init__(parent)
+        self.setupUi(self)
+
+        self.move(parent.frameGeometry().topLeft() + parent.rect().center() - self.rect().center())
+        self.new_exploration_listener = callback
+
+        self.btnCancel.pressed.connect(self.close)
+        self.connectBtn.pressed.connect(self.on_connect_clicked)
+
+    def on_connect_clicked(self):
+        username = str(self.usernameEdit.text())
+
+        if len(username) == 0:
+            return
+
+        self.new_exploration_listener(username)
+        self.close()
 
 
 class FileManager(QtGui.QMainWindow, Ui_mainWindow):
@@ -160,6 +184,10 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.init_menu()
 
         self.gohappy = None
+        self.session_id = None
+        self.exploration_progress_bar = None
+        self.source_username = None
+        self.is_remote = False
 
     def init_tray_icon(self):
         self.trayIcon = GoHappySystemTrayIcon()
@@ -234,6 +262,10 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.logOutAction = QAction('LogOut', self)
         self.logOutAction.triggered.connect(self.on_logOut)
 
+        self.connectAction = QAction('New Exploration', self)
+        self.connectAction.triggered.connect(self.on_user_asked_new_connection)
+        self.connectAction.setEnabled(False)
+
     def init_menu(self):
         menubar = self.menuBar()
         self.mainMenu = menubar.addMenu('GoHappy')
@@ -242,6 +274,10 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def on_right_pane_item_clicked(self, index):
         data = index.data(9).toPyObject()
+        if self.is_remote:
+            self.load_remote(data)
+            return
+
         if data:
             if not data[-2]:
                 self.open_file(data[0])
@@ -256,15 +292,21 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             self.open_file(path)
 
     def on_left_pane_item_clicked(self, index):
+        if self.is_remote: return
+
         path = self.leftPaneFileModel.filePath(index)
         self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL, True)
 
     def on_back(self, event):
+        if self.is_remote: return
+
         if self.current_index == 0: return
         self.enter_dir(self.rightPane, self.rightPaneFileModel,
                        self.history[self.current_index - 1], FileManager.BACK, False)
 
     def on_forward(self, event):
+        if self.is_remote: return
+
         if self.current_index == len(self.history) - 1: return
         self.enter_dir(self.rightPane, self.rightPaneFileModel,
                        self.history[self.current_index + 1], FileManager.FORWARD, False)
@@ -279,17 +321,25 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         # self.leftPaneFileModel.emit()
 
     def on_copy_keys_pressed(self, index):
+        if self.is_remote: return
+
         path = str(self.rightPaneFileModel.filePath(index))
         self.on_copy(path)
 
     def on_cut_keys_pressed(self, index):
+        if self.is_remote: return
+
         path = str(self.rightPaneFileModel.filePath(index))
         self.on_cut(path)
 
     def on_paste_keys_pressed(self, index):
+        if self.is_remote: return
+
         self.on_paste(None)
 
     def on_find_keys_pressed(self):
+        if self.is_remote: return
+
         current_path = self.history[self.current_index]
 
         w = Find(self.on_search_result_received, current_path, self)
@@ -323,7 +373,12 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def create_logOut_menu(self, username):
         self.logoutMenu = self.menuBar().addMenu(username)
+        self.logoutMenu.addAction(self.connectAction)
         self.logoutMenu.addAction(self.logOutAction)
+
+    def on_user_asked_new_connection(self):
+        w = NewConnection(self, self.start_new_exploration)
+        w.show()
 
     def on_successful_login(self, username):
         self.menubar.clear()
@@ -352,6 +407,8 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.pathIndicator.setText(currentPath)
 
     def open_menu(self, position):
+        if self.is_remote: return
+
         menu = QMenu()
 
         # get clicked item file path by its mouse position
@@ -437,6 +494,72 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             self.gohappy.start_new_connection(self.on_new_connection_result)
             return
 
+        self.connectAction.setEnabled(True)
+
+    def start_new_exploration(self, username):
+        if not self.gohappy.is_new_connection_opened:
+            return
+
+        self.gohappy.start_new_exploration(username, self.on_new_exploration_result)
+
+        self.source_username = username
+        self.exploration_progress_bar = self.create_progress_bar(self)
+        self.exploration_progress_bar.exec_()
+
+    def on_new_exploration_result(self, session_id, is_successful, is_source_offline, is_permission_denied):
+        if is_successful and session_id:
+            self.session_id = session_id
+            self.leftPane.setEnabled(False)
+            self.is_remote = True
+            show_notification('Exploration started!', 'Exploring ' + self.source_username)
+
+            self.gohappy.get_files(session_id, 'home', self.on_file_request_result)
+        else:
+            if self.exploration_progress_bar:
+                self.exploration_progress_bar.close()
+
+            msg = 'Sorry, Unable to connect :('
+            if is_source_offline:
+                msg = 'Sorry, ' + self.source_username + ' is offline :('
+            elif is_permission_denied:
+                msg = 'Sorry, ' + self.source_username + ' reject your request'
+
+            self.show_error_message(msg)
+
+    def on_file_request_result(self, is_successful, error, data, session_id, is_source_offline):
+        if self.exploration_progress_bar:
+            self.exploration_progress_bar.close()
+
+        if is_successful or len(data) > 0:
+            pass
+        else:
+            msg = 'Sorry, Unable to fetch new data, please try again :('
+            if error == PathResult.ACCESS_DENIED:
+                msg = 'Unable to reach to asked location try again'
+            elif error == PathResult.NOT_FOUND:
+                msg = 'Path not found'
+
+            self.show_error_message(msg)
+
+    def load_remote(self, data):
+        if not data \
+                or not self.is_remote \
+                or not self.session_id \
+                or not self.gohappy \
+                or not self.gohappy.is_new_connection_opened:
+            return
+
+        try:
+            path = data[0]
+        except:
+            return
+
+        self.gohappy.get_files(self.session_id, path, self.on_file_request_result)
+
+        if not self.exploration_progress_bar:
+            self.exploration_progress_bar = self.create_progress_bar(self)
+        self.exploration_progress_bar.exec_()
+
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)
         pane.setRootIndex(rootIndex)
@@ -484,6 +607,43 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             os.startfile(filepath)
         elif os.name == 'posix':
             subprocess.call(('xdg-open', filepath))
+
+    @staticmethod
+    def create_progress_bar(parent):
+        progressbar = QProgressDialog(parent)
+        progressbar.setWindowTitle("Please wait...")
+        progressbar.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        progressbar.setCancelButton(None)
+        progressbar.setModal(True)
+        progressbar.setRange(0, 0)
+        move_to_center_of_parent(parent, progressbar)
+        return progressbar
+
+    @staticmethod
+    def show_error_message(msg):
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Something goes wrong")
+        msgBox.setText(msg)
+        msgBox.setIcon(QMessageBox.Warning)
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        msgBox.setDefaultButton(QMessageBox.Ok)
+        msgBox.show()
+
+
+def move_to_center_of_parent(parent, child):
+    child.move(parent.window().frameGeometry().topLeft() + parent.window().rect().center() - child.rect().center())
+
+
+def show_notification(title, body):
+    Notify.init("Gohappy client")
+    notification = Notify.Notification.new(title, body)
+
+    image = GdkPixbuf.Pixbuf.new_from_file("resources/gohappy.svg")
+
+    notification.set_icon_from_pixbuf(image)
+    notification.set_image_from_pixbuf(image)
+
+    return notification.show()
 
 
 def MyCopy(src, dst):
