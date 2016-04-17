@@ -355,6 +355,9 @@ class SocketThread(QThread):
         self._gohappy = gohappy
         self._ns = namespace
 
+    def get_token(self):
+        return self._gohappy.get_token()
+
     def run(self):
         socketio = SocketIO(GoHappy.HOST, GoHappy.PORT, transports=['xhr-polling'])
 
