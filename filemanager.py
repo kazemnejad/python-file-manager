@@ -6,6 +6,7 @@ import threading
 from PyQt4 import QtGui
 from gi.repository import Notify, GdkPixbuf
 
+import re
 from PyQt4.QtCore import QDir, QFileInfo, QSize, QFileSystemWatcher, Qt
 from PyQt4.QtGui import QFileSystemModel, QHeaderView, QPalette, QMenu, QAction, QProgressDialog, QStandardItemModel, \
     QStandardItem, QFileIconProvider, QMessageBox
@@ -189,6 +190,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.source_username = None
         self.remote_model = None
         self.is_remote = False
+        self.remote_cache = {}
 
     def init_tray_icon(self):
         self.trayIcon = GoHappySystemTrayIcon()
@@ -299,16 +301,32 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL, True)
 
     def on_back(self, event):
-        if self.is_remote: return
-
         if self.current_index == 0: return
+
+        pth = str(self.history[self.current_index - 1])
+        if self.is_remote:
+            if pth in self.remote_cache:
+                self.load_from_cache(pth)
+                self.current_index -= 1
+
+                self.update_indicator()
+                return
+
         self.enter_dir(self.rightPane, self.rightPaneFileModel,
                        self.history[self.current_index - 1], FileManager.BACK, False)
 
     def on_forward(self, event):
-        if self.is_remote: return
-
         if self.current_index == len(self.history) - 1: return
+
+        pth = str(self.history[self.current_index + 1])
+        if self.is_remote:
+            if pth in self.remote_cache:
+                self.load_from_cache(pth)
+                self.current_index += 1
+
+                self.update_indicator()
+                return
+
         self.enter_dir(self.rightPane, self.rightPaneFileModel,
                        self.history[self.current_index + 1], FileManager.FORWARD, False)
 
@@ -403,8 +421,16 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
     def update_indicator(self):
         currentPath = str(self.history[self.current_index])
-        if currentPath.startswith(str(QDir.homePath())):
-            currentPath = currentPath.replace(str(QDir.homePath()), "Home")
+        res = re.match(r'(\/home\/.*?\/).*', currentPath)
+
+        what_to_replace = QDir.homePath()
+        if res:
+            what_to_replace = res.group(1)
+
+        if currentPath.startswith('/home'):
+            currentPath = currentPath.replace(what_to_replace, "Home/")
+        elif currentPath == "home":
+            currentPath = "Home"
 
         self.pathIndicator.setText(currentPath)
 
@@ -516,6 +542,9 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
             show_notification('Exploration started!', 'Exploring ' + self.source_username)
 
             self.gohappy.get_files(self.session_id, 'home', self.on_file_request_result)
+
+            self.history = []
+            self.current_index = -1
         else:
             if self.exploration_progress_bar:
                 self.exploration_progress_bar.close()
@@ -528,18 +557,22 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
             self.show_error_message(msg)
 
-    def on_file_request_result(self, is_successful, error, data, session_id, is_source_offline):
+    def on_file_request_result(self, is_successful, error, data, session_id, is_source_offline, pth):
         if self.exploration_progress_bar:
             self.exploration_progress_bar.close()
 
         if is_successful or len(data) > 0:
+            self.remote_cache[pth] = data
+
             self.remote_model = QStandardItemModel()
-
-            print data
-
             parent = self.make_treeview_with_list(data, 0, 2, 9, self.remote_model)
             self.rightPane.setModel(self.remote_model)
             self.rightPane.setRootIndex(parent.index())
+
+            self.history.append(pth)
+            self.current_index += 1
+
+            self.update_indicator()
         else:
             msg = 'Sorry, Unable to fetch new data, please try again :('
             if error == PathResult.ACCESS_DENIED:
@@ -559,7 +592,19 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
 
         try:
             path = str(data[1])
+            is_dir = bool(data[2])
         except:
+            return
+
+        if not is_dir:
+            return
+
+        if path in self.remote_cache:
+            self.load_from_cache(path)
+            self.history.append(path)
+            self.current_index += 1
+
+            self.update_indicator()
             return
 
         self.gohappy.get_files(self.session_id, path, self.on_file_request_result)
@@ -567,6 +612,16 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         if not self.exploration_progress_bar:
             self.exploration_progress_bar = self.create_progress_bar(self)
         self.exploration_progress_bar.exec_()
+
+    def load_from_cache(self, pth):
+        if not pth in self.remote_cache:
+            return
+
+        data = self.remote_cache.get(pth, [])
+        self.remote_model = QStandardItemModel()
+        parent = self.make_treeview_with_list(data, 0, 2, 9, self.remote_model)
+        self.rightPane.setModel(self.remote_model)
+        self.rightPane.setRootIndex(parent.index())
 
     def enter_dir(self, pane, model, path, enterType, is_from_left_pane):
         rootIndex = model.setRootPath(path)

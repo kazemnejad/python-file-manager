@@ -81,6 +81,7 @@ class GoHappy(object):
 
         self._path_request_listener = callback
         self._last_request_code = uuid.uuid4().hex
+        self._last_requested_path = pth
 
         self._namespace.request_for_files(session_id, pth, self._last_request_code)
 
@@ -137,9 +138,10 @@ class GoHappy(object):
         error = data[0] if len(data) == 2 else None
         data = data[1] if len(data) == 2 else []
         is_source_offline = message is not None and message == ExplorationResponse.SOURCE_IS_OFFLINE
-        self._path_request_listener(is_successful, error, data, session_id, is_source_offline)
+        self._path_request_listener(is_successful, error, data, session_id, is_source_offline, self._last_requested_path)
 
         self._path_request_listener = None
+        self._last_requested_path = None
         self._last_request_code = None
 
     @staticmethod

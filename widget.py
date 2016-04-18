@@ -30,11 +30,11 @@ class SuperTreeView(QTreeView):
         else:
             if self.is_control_pressed and (time.time() - self.start_time) < 0.5:
                 if key == Qt.Key_C:
-                    self.copyKeysPressed.emit(index)
+                    self.copyKeysPressed.emit(index if index else QModelIndex())
                 elif key == Qt.Key_X:
-                    self.cutKeysPressed.emit(index)
+                    self.cutKeysPressed.emit(index if index else QModelIndex())
                 elif key == Qt.Key_V:
-                    self.pasteKeysPressed.emit(index)
+                    self.pasteKeysPressed.emit(index if index else QModelIndex())
                 elif key == Qt.Key_F:
                     self.findKeysPressed.emit()
 
@@ -47,9 +47,9 @@ class SuperTreeView(QTreeView):
 
             if key == Qt.Key_Return or key == Qt.Key_Enter:
                 if index is not None:
-                    self.enterKeyPressed.emit(index)
+                    self.enterKeyPressed.emit(index if index else QModelIndex())
             elif key == Qt.Key_Backspace:
-                self.backspaceKeyPressed.emit(index)
+                self.backspaceKeyPressed.emit(index if index else QModelIndex())
             else:
                 return QTreeView.keyPressEvent(self, event)
 
