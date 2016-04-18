@@ -57,8 +57,7 @@ def get_path_result(pth):
         return PathResult.NOT_FOUND, []
 
     dirs = os.listdir(pth)
-    files = []
-    folders = []
+    result = []
     for f in dirs:
         if f.startswith('.'):
             continue
@@ -66,12 +65,9 @@ def get_path_result(pth):
         is_dir = os.path.isdir(os.path.join(pth, f))
         fi = f, os.path.join(pth, f), is_dir
 
-        if is_dir:
-            folders.append(fi)
-        else:
-            files.append(fi)
-
-    return None, folders + files
+        result.append(fi)
+    result.sort(key=lambda x: (not x[-1], x[0]))
+    return None, result
 
 
 def get_token():
