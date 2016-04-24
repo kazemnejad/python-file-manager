@@ -66,7 +66,7 @@ def get_path_result(pth):
         fi = f, os.path.join(pth, f), is_dir
 
         result.append(fi)
-    result.sort(key=lambda x: (not x[-1], x[0]))
+    result.sort(key=lambda x: (not x[-1], x[0].lower()))
     return None, result
 
 
