@@ -192,6 +192,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.remote_model = None
         self.is_remote = False
         self.remote_cache = {}
+        self.is_showing_search = False
 
     def init_tray_icon(self):
         self.trayIcon = GoHappySystemTrayIcon()
@@ -287,7 +288,7 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
                 self.open_file(data[0])
             return
 
-        path = self.rightPaneFileModel.filePath(index)
+        path = unicode(self.rightPaneFileModel.filePath(index), encoding="UTF-8")
 
         fileInfo = QFileInfo(path)
         if fileInfo.isDir():
@@ -302,6 +303,14 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         self.enter_dir(self.rightPane, self.rightPaneFileModel, path, FileManager.NORMAL, True)
 
     def on_back(self, event):
+        if (self.is_showing_search):
+            rootIndex = self.rightPaneFileModel.setRootPath(self.history[self.current_index])
+            self.rightPane.setModel(self.rightPaneFileModel)
+            self.rightPane.setRootIndex(rootIndex)
+            self.is_showing_search = False
+            self.leftPane.setEnabled(True)
+            return
+
         if self.current_index == 0: return
 
         pth = str(self.history[self.current_index - 1])
@@ -383,6 +392,9 @@ class FileManager(QtGui.QMainWindow, Ui_mainWindow):
         parent = self.make_treeview_with_list(result, 1, -2, 9, self.search_model)
         self.rightPane.setModel(self.search_model)
         self.rightPane.setRootIndex(parent.index())
+
+        self.is_showing_search = True
+        self.leftPane.setEnabled(False)
 
     def on_login(self):
         loginWindow = LoginWindow(self, self.on_successful_login)
