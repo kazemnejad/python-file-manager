@@ -55,7 +55,7 @@ def decode_engineIO_content(content):
 
 
 def format_socketIO_packet_data(path=None, ack_id=None, args=None):
-    socketIO_packet_data = json.dumps(args, ensure_ascii=False) if args else ''
+    socketIO_packet_data = json.dumps(args, encoding='utf8') if args else ''
     if ack_id is not None:
         socketIO_packet_data = str(ack_id) + socketIO_packet_data
     if path:

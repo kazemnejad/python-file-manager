@@ -72,6 +72,6 @@ class Ui_FindWindow(object):
         FindWindow.setWindowTitle(_translate("FindWindow", "Find in files", None))
         self.label.setText(_translate("FindWindow", "Pattern", None))
         self.label_3.setText(
-                _translate("FindWindow", "Example: should have || should not have || mostahab || type || kind", None))
+                _translate("FindWindow", "Ex: Should && ... || Should Not && ... || Better && ... || Type/Kind", None))
         self.btnCancel.setText(_translate("FindWindow", "Cancel", None))
         self.btnFind.setText(_translate("FindWindow", "Find", None))

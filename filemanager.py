@@ -143,6 +143,7 @@ class NewConnection(QtGui.QMainWindow, Ui_NewConnectionWindow):
 
         self.move(parent.frameGeometry().topLeft() + parent.rect().center() - self.rect().center())
         self.new_exploration_listener = callback
+        self.usernameEdit.returnPressed.connect(self.on_connect_clicked)
 
         self.btnCancel.pressed.connect(self.close)
         self.connectBtn.pressed.connect(self.on_connect_clicked)
@@ -714,19 +715,20 @@ def MyCopy(src, dst):
     print "name :", os.path.basename(src)
     if os.path.isfile(src):
         shutil.copy2(src, dst)
-    if not os.path.isdir(os.path.join(dst, os.path.basename(src))):
+    print os.path.isfile(src)
+    if not os.path.isdir(os.path.join(dst, os.path.basename(src))) and not os.path.isfile(src):
         os.mkdir(os.path.join(dst, os.path.basename(src)))
     print "befor : ", dst
     hel = os.path.join(dst, os.path.basename(src))
     dst = hel
     print "after : ", dst
-
-    for file in os.listdir(src):
-        print "\t i : ", file
-        if os.path.isfile(os.path.join(src, file)):
-            shutil.copy2(os.path.join(src, file), dst)
-        else:
-            print "\t\t dst : ", os.path.join(dst, file), os.path.isdir(os.path.join(dst, file))
-            if not os.path.isdir(os.path.join(dst, file)):
-                os.mkdir(os.path.join(dst, file))
-            MyCopy(os.path.join(src, file), os.path.join(dst, file))
+    if os.path.isdir(src):
+        for file in os.listdir(src):
+            print "\t i : ", file
+            if os.path.isfile(os.path.join(src, file)):
+                shutil.copy2(os.path.join(src, file), dst)
+            else:
+                print "\t\t dst : ", os.path.join(dst, file), os.path.isdir(os.path.join(dst, file))
+                if not os.path.isdir(os.path.join(dst, file)):
+                    os.mkdir(os.path.join(dst, file))
+                MyCopy(os.path.join(src, file), os.path.join(dst, file))
